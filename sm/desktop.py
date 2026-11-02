@@ -29,6 +29,7 @@ from .win import HOME, powershell_json, run
 log = logging.getLogger(__name__)
 USER = HOME.name
 AUMID = "SelfMonitoring.Panel"
+ERROR_NOT_FOUND = -2147023728      # HRESULT 0x80070490
 ICON_DIR = ROOT / "data" / "icons"
 
 
@@ -71,8 +72,15 @@ def notify_pc(title: str, body: str, urgency: str = "normal", icon: str = "", ti
            f"<text>{escape(title)}</text><text>{escape(body)}</text></binding></visual></toast>")
     try:
         notifier = ToastNotificationManager.create_toast_notifier_with_id(AUMID)
-        if notifier.setting != NotificationSetting.ENABLED:
-            return False
+        try:
+            if notifier.setting != NotificationSetting.ENABLED:
+                return False
+        except OSError as e:
+            # Antes da primeira notificação o Windows ainda não criou a entrada do app em
+            # Configurações > Notificações e `setting` falha com "Elemento não encontrado".
+            # Ainda não há como o usuário ter desativado: exibe (e a entrada passa a existir).
+            if e.winerror != ERROR_NOT_FOUND:
+                raise
         doc = XmlDocument()
         doc.load_xml(xml)
         notifier.show(ToastNotification(doc))

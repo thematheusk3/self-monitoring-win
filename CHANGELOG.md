@@ -1,5 +1,10 @@
 # Changelog
 
+## Não lançado
+- Captura de tela (e demais avisos na tela do PC) recusada logo após instalar, com "as notificações estão
+  desativadas?": antes da primeira notificação o Windows não conhece o app e a consulta da configuração falha
+  com "Elemento não encontrado"; agora isso não é tratado como "desativadas" e o aviso é exibido.
+
 ## 0.5.1-win
 - Controles > Áudio: escolher por qual saída cada app toca (ex.: Chrome no monitor, Spotify no fone), ou "Padrão".
   Usa a interface interna do Mixer de volume do Windows; o Windows lembra a escolha por executável.
