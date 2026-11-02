@@ -1,0 +1,41 @@
+# Configuração do self-monitoring. Todos os campos são opcionais.
+# Depois de editar, reinicie o painel (rode o instalador de novo ou reinicie o PC).
+
+[server]
+host = "0.0.0.0"   # 0.0.0.0 = acessível na rede local; 127.0.0.1 = só esta máquina
+port = 8765
+
+[sampling]
+interval = 1.0          # segundos entre amostras (CPU, GPU, sensores...)
+process_interval = 2.0  # segundos entre varreduras da lista de processos
+history_seconds = 300   # histórico mantido para os gráficos
+track_exited = true     # registra processos que já encerraram (aba Processos > Encerrados)
+track_interval = 0.5    # s entre varreduras; processos mais curtos que isso podem não aparecer
+exited_max = 3000       # quantos processos encerrados guardar
+track_persist = true    # mantém o histórico entre reinícios (data/exited.json)
+net_monitor = true      # monitor de conexões de rede (aba Rede)
+net_interval = 2.0      # s entre leituras das conexões
+net_closed_max = 3000   # quantas conexões encerradas guardar (data/connections.json)
+
+[security]
+auth = true             # exige senha (recomendado: o painel pode finalizar processos)
+allow_kill = true       # permite finalizar processos pelo painel
+allow_power = true      # permite desligar/reiniciar a máquina pelo painel
+allow_lock = true       # permite bloquear a tela do PC pelo painel
+allow_launch = true     # permite abrir aplicativos instalados pelo painel
+allow_screenshot = true # captura de tela pelo painel (sempre mostra um aviso na tela do PC)
+allow_control = true    # controle de áudio, mídia e tela (saída, volume, resolução, brilho)
+# senha: defina com  install.cmd -SetPassword  (fica em data\auth.json, só o hash)
+
+[collectors]
+# Desativa coletores pelo nome, ex: disabled = ["media", "focus"]
+disabled = []
+
+[sensors]
+# Temperaturas, ventoinhas e tensões vêm do LibreHardwareMonitor (Options > Remote Web Server > Run).
+lhm_url = "http://127.0.0.1:8085/data.json"
+
+[game]
+# Caminho do PresentMon (FPS dos jogos). Vazio = procura o instalado pelo winget (--scope machine)
+# ou um PresentMon*.exe na pasta tools. Use só caminhos em pastas que exigem administrador.
+presentmon = ""

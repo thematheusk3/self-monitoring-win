@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+# dados da máquina: senha (hash), sessões, históricos, capturas, log
+data/
+# configuração da máquina (o modelo versionado é config.example.toml)
+config.toml
+*.tmp
+# PresentMon baixado manualmente
+tools/PresentMon*.exe

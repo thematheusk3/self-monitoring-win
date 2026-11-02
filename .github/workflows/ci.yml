@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        python: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Dependências
+        run: pip install -r requirements.txt
+      - name: Compila todo o Python
+        run: python -m compileall -q server.py sm tests
+      - name: Testes
+        run: python -X utf8 -m unittest discover -s tests -t . -v
+      - name: Sintaxe do JavaScript (módulos ES)
+        shell: pwsh
+        run: |
+          $bad = 0
+          foreach ($f in Get-ChildItem web/js -Recurse -Filter *.js) {
+            Copy-Item $f.FullName "$env:RUNNER_TEMP/check.mjs" -Force
+            node --check "$env:RUNNER_TEMP/check.mjs"
+            if ($LASTEXITCODE) { Write-Host "erro em $($f.FullName)"; $bad++ }
+          }
+          exit $bad
+      - name: Sintaxe dos scripts PowerShell
+        shell: powershell
+        run: |
+          $bad = 0
+          foreach ($f in @("install.ps1") + (Get-ChildItem tools -Filter *.ps1 | ForEach-Object FullName)) {
+            $errs = $null; $tok = $null
+            [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $f), [ref]$tok, [ref]$errs) | Out-Null
+            if ($errs) { $errs | ForEach-Object { Write-Host "${f}: $($_.Message)" }; $bad++ }
+          }
+          exit $bad

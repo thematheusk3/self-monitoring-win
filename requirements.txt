@@ -1,0 +1,10 @@
+psutil>=6.0
+comtypes>=1.4
+pycaw>=20240316
+winrt-runtime>=2.0
+winrt-Windows.Foundation>=2.0
+winrt-Windows.Foundation.Collections>=2.0
+winrt-Windows.Media.Control>=2.0
+winrt-Windows.Storage.Streams>=2.0
+winrt-Windows.UI.Notifications>=2.0
+winrt-Windows.Data.Xml.Dom>=2.0
