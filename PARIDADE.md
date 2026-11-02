@@ -8,7 +8,7 @@ backend de cada sistema.
 **Regra:** ao implementar algo novo em uma versão, registre aqui se dá para levar para a outra (e como), ou se é
 impossível (e por quê). Quando for portado, mova a linha para "Já equalizado".
 
-Situação em: versão Windows 0.5.2-win, versão Linux 0.4.3.
+Situação em: versão Windows 0.5.3-win, versão Linux 0.4.3.
 
 ## 1. Só no Windows: dá para levar ao Linux
 
@@ -25,6 +25,7 @@ Situação em: versão Windows 0.5.2-win, versão Linux 0.4.3.
 | Aviso de rede "Pública" bloqueando o acesso pelo celular | `Get-NetConnectionProfile` no instalador | No `install.sh`: detectar `firewalld`/`ufw` ativo e liberar a porta (ou avisar) | Baixo |
 | **Quem está acessando** (Sistema): sessões abertas com aparelho, IP, origem, nome na rede, MAC, última atividade, encerrar uma sessão específica; histórico de acessos em `data/access-log.json` | `sm/clients.py` (ARP por `GetIpNetTable`, DNS reverso em cache) + `Auth.list_sessions/end_by_id/record` + `GET /api/auth/sessions`, `POST /api/auth/sessions/end` + cartão em `system.js` | `auth.py`, rotas e frontend são iguais (copiar). Em `clients.py`, trocar só `arp_table()` por ler `/proc/net/arp` (colunas IP e HW address; ignorar `00:00:00:00:00:00`) e `_own_ips()` já usa `psutil`. O resto é portável | Baixo |
 | **Notificação no PC a cada login** e a cada IP bloqueado, sempre (não depende dos alertas); alerta não duplica no PC (`event(..., pc=False)`) | `Handler._announce` em `server.py` + `notify_pc` | O mesmo `_announce`, com o `notify_pc` do Linux (`notify-send`) | Baixo |
+| **Registro de ações feitas pelo painel** (auditoria: quem, quando, o quê, resultado; agrupa ajustes de slider) | `sm/audit.py` (descritores por nome da função da rota) + gancho central no `_dispatch` do `server.py` para todo POST com descritor + `GET /api/audit` + cartão em `system.js` | Copiar `audit.py`, o gancho e o frontend. Ajustar os descritores às rotas do Linux: `_audio` (nomes vindos do PipeWire), `_mode` (saídas do `kscreen-doctor`) e acrescentar as rotas que só existem lá (`fan`, `session_unlock` real) | Baixo |
 | Captura de tela sem programa externo | GDI (BitBlt) + encoder PNG próprio | No Wayland só pelo portal (`org.freedesktop.portal.Screenshot`) ou Spectacle; manter o Spectacle | — (não vale) |
 
 ## 2. Só no Linux: dá para levar ao Windows

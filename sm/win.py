@@ -95,7 +95,8 @@ def version_info(path: str) -> dict:
                     for lang, cp in langs:
                         q = rf"\StringFileInfo\{lang:04X}{cp:04X}\{key}"
                         if ver.VerQueryValueW(buf, q, ctypes.byref(ptr), ctypes.byref(n)) and n.value > 1:
-                            v = ctypes.wstring_at(ptr, n.value - 1).strip()
+                            # até o NUL: alguns executáveis (ex.: Spotify) informam um tamanho maior que o texto
+                            v = ctypes.wstring_at(ptr, n.value).split(chr(0), 1)[0].strip()
                             if v:
                                 out[name] = v
                                 break

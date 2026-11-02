@@ -2,12 +2,17 @@
 from __future__ import annotations
 
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from sm import config  # noqa: E402
+from sm import audit  # noqa: E402
+
+# nenhum teste grava o registro de ações na pasta data/ do repositório
+audit.FILE = Path(tempfile.mkdtemp(prefix="sm-test-")) / "audit-log.json"
 
 
 class Ctx:

@@ -234,6 +234,21 @@ def auth_sessions_end(req):
     return {"ok": True, "ended": 1}
 
 
+# ---------- ações feitas pelo painel (auditoria) ----------
+@route("GET", "/api/audit")
+def audit_list(req):
+    from ..audit import CATEGORIES
+    q = {k: v[0] for k, v in req.query.items()}
+    try:
+        before = int(q["before"]) if q.get("before") else None
+        limit = max(1, min(500, int(q.get("limit", 100))))
+    except ValueError:
+        return Response({"error": "Parâmetro inválido."}, 400)
+    sid = req._session_id()
+    return {"items": req.audit.list(q.get("cat") or None, q.get("session") or None, limit, before),
+            "categories": CATEGORIES, "current_session": req.auth.public_id(sid) if sid else None}
+
+
 # ---------- sessão gráfica ----------
 @route("GET", "/api/session")
 def session_status(req):

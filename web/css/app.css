@@ -439,3 +439,5 @@ select.search { flex: 0 1 auto; }
 .who-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
 .who-row:last-child { border-bottom: 0; }
 .who-main { flex: 1; min-width: 0; display: grid; gap: 2px; overflow-wrap: anywhere; }
+.audit-filters { display: flex; gap: 6px; flex-wrap: wrap; }
+.audit-filters .search { flex: none; width: auto; min-height: 30px; font-size: 13px; }

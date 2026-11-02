@@ -20,6 +20,12 @@ function mount(el, a) {
       <div class="card-head"><div class="card-title">Quem está acessando</div><button class="btn btn-sm" data-who-others hidden>Encerrar as outras</button></div>
       <div data-who-body class="note" style="margin-top:0">Carregando…</div>
     </article>
+    <article class="card span-2" data-audit>
+      <div class="card-head"><div class="card-title">Ações feitas pelo painel</div>
+        <div class="audit-filters"><select class="search" data-audit-cat><option value="">Todas</option></select>
+          <select class="search" data-audit-sess><option value="">Todos os aparelhos</option><option value="me">Só este aparelho</option></select></div></div>
+      <div data-audit-body class="note" style="margin-top:0">Carregando…</div>
+    </article>
     ${app.info.features.unlock ? `<article class="card" data-session>
       <div class="card-head"><div class="card-title">Sessão</div><div data-sess-chip></div></div>
       <div data-sess-body class="note" style="margin-top:0">Carregando…</div>
@@ -62,6 +68,7 @@ function mount(el, a) {
   if (app.info.features.updates) setupUpdates(el);
   if (app.info.features.unlock) setupSession(el);
   setupWho(el);
+  setupAudit(el);
   app.onSnapshot(update);
 }
 
@@ -152,6 +159,14 @@ function whereHtml(w, ip) {
 function setupWho(el) {
   const card = $("[data-who]", el);
   card.addEventListener("click", async e => {
+    const v = e.target.closest("[data-who-audit]");
+    if (v) {
+      const sel = $("[data-audit-sess]", root);
+      if (![...sel.options].some(o => o.value === v.dataset.whoAudit)) sel.add(new Option(v.dataset.label, v.dataset.whoAudit));
+      sel.value = v.dataset.whoAudit;
+      refreshAudit();
+      return $("[data-audit]", root).scrollIntoView({ behavior: "smooth", block: "start" });
+    }
     const b = e.target.closest("[data-who-end], [data-who-others]");
     if (!b) return;
     const others = b.hasAttribute("data-who-others");
@@ -180,6 +195,7 @@ async function refreshWho() {
         <div class="muted">${whereHtml(s.where, s.last_ip)}${s.ip !== s.last_ip ? ` · entrou por <span class="mono">${esc(s.ip)}</span>` : ""}</div>
         <div class="muted">Entrou em ${when(s.created)} · expira em ${when(s.expires)}</div>
       </div>
+      <button class="btn btn-sm" data-who-audit="${esc(s.id)}" data-label="${esc(`${s.device} — ${s.last_ip}`)}">Ver ações</button>
       ${s.current ? "" : `<button class="btn btn-sm" data-who-end="${esc(s.id)}">Encerrar</button>`}
     </div>`).join("") || `<p class="muted">Nenhuma sessão ativa.</p>`}</div>
     <details style="margin-top:10px"><summary class="stat-label" style="cursor:pointer">Últimos acessos (${st.log.length})</summary>
@@ -189,6 +205,39 @@ async function refreshWho() {
     </details>
     <p class="note">Todo login e todo bloqueio por senha errada aparecem como notificação na tela do PC. O nome vem do DNS da rede
       (nem todo aparelho responde) e o MAC da tabela ARP; celulares costumam usar MAC aleatório por rede.</p>`;
+}
+
+// ---------- ações feitas pelo painel ----------
+let auditItems = [], auditMore = false;
+
+function setupAudit(el) {
+  const card = $("[data-audit]", el);
+  card.addEventListener("change", e => { if (e.target.closest("select")) refreshAudit(); });
+  card.addEventListener("click", e => { if (e.target.closest("[data-audit-more]")) refreshAudit(true); });
+}
+
+async function refreshAudit(more = false) {
+  const card = $("[data-audit]", root);
+  const cat = $("[data-audit-cat]", card), sess = $("[data-audit-sess]", card);
+  const q = new URLSearchParams({ limit: "50" });
+  if (cat.value) q.set("cat", cat.value);
+  let st;
+  try {
+    if (sess.value === "me") q.set("session", (await app.api("/api/audit?limit=1")).current_session || "-");
+    else if (sess.value) q.set("session", sess.value);
+    if (more && auditItems.length) q.set("before", auditItems[auditItems.length - 1].seq);
+    st = await app.api(`/api/audit?${q}`);
+  } catch { return; }
+  if (cat.options.length === 1) for (const [k, v] of Object.entries(st.categories)) cat.add(new Option(v, k));
+  auditItems = more ? auditItems.concat(st.items) : st.items;
+  auditMore = st.items.length === 50;
+  $("[data-audit-body]", card).innerHTML = `<div class="who-list">${auditItems.map(e => `<div class="who-row"><div class="who-main">
+      <div>${e.ok ? "" : `<span class="chip critical">Falhou</span> `}<b>${esc(e.text)}</b>${e.count > 1 ? ` <span class="muted">(${e.count} ajustes)</span>` : ""}</div>
+      <div class="muted">${esc(st.categories[e.cat] || e.cat)} · ${when(e.time)} · ${esc(e.device)} · <span class="mono">${esc(e.ip)}</span>${e.session && e.session === st.current_session ? " · este aparelho" : ""}</div>
+      ${e.error ? `<div class="muted">${esc(e.error)}</div>` : ""}</div></div>`).join("") || `<p class="muted">Nenhuma ação registrada${cat.value || sess.value ? " com esse filtro" : ""}.</p>`}</div>
+    ${auditMore ? `<button class="btn btn-sm" data-audit-more style="margin-top:8px">Carregar mais</button>` : ""}
+    <p class="note">Tudo o que muda algo no PC pelo painel fica registrado aqui (processos, energia, áudio, tela, mídia, apps, captura,
+      configurações do painel), com quem fez e se deu certo. Ajustes seguidos do mesmo controle (ex.: arrastar o volume) aparecem como um só.</p>`;
 }
 
 const POWER = {
@@ -367,7 +416,7 @@ export default {
   id: "system", title: "Sistema", icon: "ⓘ", mount,
   show: () => {
     if (app.snapshot) update(app.snapshot);
-    refreshWho(); whoTimer = setInterval(refreshWho, 10000);
+    refreshWho(); refreshAudit(); whoTimer = setInterval(() => { refreshWho(); if (!auditItems.length || auditItems.length <= 50) refreshAudit(); }, 10000);
     if (app.info.features.unlock) { refreshSession(); sessTimer = setInterval(refreshSession, 5000); }
     if (app.info.features.power) { refreshTimer(); timerTick = setInterval(() => (timerState ? renderTimer() : null), 1000); }
     if (app.info.features.updates) pollUpdates();

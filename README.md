@@ -28,7 +28,8 @@ Backend em Python (biblioteca padrão + `psutil`, `pycaw` e `winrt`); o resto é
 - **Rede**: conexões por programa (para onde, quanto envia/recebe), conexões encerradas e portas abertas.
 - **Sensores**: temperaturas, ventoinhas, tensões e potências do LibreHardwareMonitor, agrupados por componente.
 - **Sistema**: informações do PC e do monitor, **quem está acessando o painel** (aparelho, IP, nome na rede, MAC,
-  última atividade, encerrar a sessão de outro aparelho, histórico de logins e senhas erradas), **bloquear a tela**, **desligar/reiniciar** (com timer),
+  última atividade, encerrar a sessão de outro aparelho, histórico de logins e senhas erradas), **registro de todas
+  as ações feitas pelo painel** (quem, quando, o quê e se deu certo), **bloquear a tela**, **desligar/reiniciar** (com timer),
   atualizações pendentes (Windows Update + winget).
 
 Gráficos com os últimos 5 minutos, atualização em tempo real (SSE, 1 s), tema claro/escuro, layout para celular e PC.
@@ -80,7 +81,8 @@ numa pasta que um programa comum consiga alterar (senão qualquer programa poder
 **Configuração**: `C:\Program Files\SelfMonitoring\config.toml` (criado a partir de `config.example.toml` na primeira
 instalação e **nunca sobrescrito**). Depois de editar, rode o instalador de novo ou reinicie o PC.
 
-**Atualizar**: baixe a versão nova e rode `.\install.cmd` de novo. Configuração e dados (`data\`) são preservados.
+**Atualizar**: `git pull` (ou baixe o ZIP) e rode `.\install.cmd` de novo. Configuração e dados (`data\`) são
+preservados. Passo a passo, como conferir a versão, problemas comuns e como voltar à versão anterior: [ATUALIZAR.md](ATUALIZAR.md).
 
 **Desinstalar**: `.\install.cmd -Uninstall` (mantém config e dados) ou `-Uninstall -Purge` (apaga tudo).
 
@@ -140,6 +142,11 @@ JavaScript e dos scripts PowerShell a cada push. Registre mudanças no `CHANGELO
   sessões abertas e deixa encerrar qualquer uma; logins, saídas, senhas erradas e bloqueios ficam em
   `dataccess-log.json` (últimos 200). Nada é consultado fora da rede: para um IP da internet o painel só oferece um
   link para ver a localização.
+- **Registro de ações** (aba Sistema > Ações feitas pelo painel): tudo que muda algo no PC pelo painel (finalizar
+  processo, desligar/timer, bloquear, abrir app, volume/saída/mudo, mídia, resolução, brilho, apagar a tela, captura,
+  FPS) ou no painel (senha, sessões, alertas, confiáveis, limpar históricos), com aparelho, IP, sessão, hora e resultado
+  (inclusive as tentativas recusadas, com o motivo). Ajustes seguidos do mesmo controle viram uma linha só. Fica em
+  `dataudit-log.json` (últimas 1000) e no log. Filtra por categoria e por aparelho ("Ver ações" em cada sessão).
 - O próprio servidor, o núcleo do Windows e processos críticos (csrss, lsass, winlogon, services...) são protegidos:
   finalizá-los derrubaria o Windows.
 - A finalização confere o horário de criação do processo, para não matar um PID reaproveitado (no Windows os PIDs
@@ -360,3 +367,4 @@ Autenticação: cookie de sessão obtido em `POST /login` (campo `password`). Tr
 `POST /api/auth/password` com `{"current": "...", "new": "..."}`. Sair: `POST /logout`.
 Sessões: `GET /api/auth/sessions` (sessões abertas e últimos acessos, com origem do IP);
 `POST /api/auth/sessions/end` com `{"id": "..."}` (id público da sessão) ou `{"others": true}`.
+Ações: `GET /api/audit?cat=audio&session=<id>&limit=100&before=<seq>` (todos os parâmetros opcionais).

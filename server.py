@@ -148,6 +148,7 @@ def main() -> None:
             ctx.proctrack.stop()
         if ctx.netmon:
             ctx.netmon.stop()
+        srv.RequestHandlerClass.audit.flush()  # grava as últimas ações
         srv.server_close()
 
 

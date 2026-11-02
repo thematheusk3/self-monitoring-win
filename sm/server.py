@@ -13,7 +13,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
-from . import api, clients
+from . import api, audit, clients
 from .api import Response, routes  # noqa: F401  (registra rotas)
 from .auth import MIN_LEN, Auth
 from .config import ROOT
@@ -28,6 +28,7 @@ PUBLIC = {"/login", "/setup", "/manifest.webmanifest", "/icon.svg", "/css/app.cs
 class Handler(BaseHTTPRequestHandler):
     ctx: Context
     auth: Auth
+    audit: audit.Audit
     server_version = "self-monitoring"
     protocol_version = "HTTP/1.1"
 
@@ -148,11 +149,17 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json({"error": "não encontrado"}, 405 if params == "method" else 404)
             if method == "POST" and self.headers.get("Content-Type", "").split(";")[0] != "application/json":
                 return self._json({"error": "Content-Type deve ser application/json"}, 415)
+            act = audit.describe(fn.__name__, self, self.json(), params) if method == "POST" else None
             try:
                 res = fn(self, **params)
             except Exception as e:  # noqa: BLE001
                 log.exception("erro em %s", path)
+                if act:
+                    self._audit(act, False, str(e))
                 return self._json({"error": str(e)}, 500)
+            if act:
+                failed = isinstance(res, Response) and res.status >= 400
+                self._audit(act, not failed, (res.body or {}).get("error") if failed and isinstance(res.body, dict) else None)
             if isinstance(res, Response):
                 if isinstance(res.body, (bytes, bytearray)):   # arquivo (ex.: ícone)
                     hdrs = dict(res.headers or {})
@@ -206,6 +213,16 @@ class Handler(BaseHTTPRequestHandler):
         log.info("senha cadastrada pelo navegador local")
         self._redirect("/", self._session_cookie(sid))
 
+    def who(self) -> dict:
+        sid = self._session_id()
+        ua = self.headers.get("User-Agent", "")
+        return {"ip": clients.describe(self.client_address[0])["ip"], "device": clients.device(ua),
+                "session": self.auth.public_id(sid) if sid else None}
+
+    def _audit(self, act: tuple, ok: bool, error: str | None = None) -> None:
+        cat, text, merge = act
+        self.audit.record(cat, text, self.who(), ok, error, merge)
+
     def _announce(self, event: str, ip: str, ua: str, key: str) -> None:
         """Todo login (e todo bloqueio por senha errada) aparece na tela do PC, sempre: não depende dos
         alertas estarem ligados. Também vira alerta (painel/ntfy) conforme a aba Alertas."""
@@ -243,6 +260,7 @@ class Handler(BaseHTTPRequestHandler):
             return self._json({"error": f"A nova senha precisa ter pelo menos {MIN_LEN} caracteres."}, 400)
         self.auth.set_password(new)
         self.auth.end_all_except(self._session_id())
+        self._audit(("panel", "Trocar a senha do painel (outras sessões encerradas)", None), True)
         log.info("senha alterada pelo painel (%s); outras sessões encerradas", ip)
         self._json({"ok": True})
 
@@ -302,5 +320,5 @@ class Server(ThreadingHTTPServer):
 
 
 def make_server(ctx: Context) -> Server:
-    handler = type("BoundHandler", (Handler,), {"ctx": ctx, "auth": Auth()})
+    handler = type("BoundHandler", (Handler,), {"ctx": ctx, "auth": Auth(), "audit": audit.Audit()})
     return Server((ctx.config.host, ctx.config.port), handler)

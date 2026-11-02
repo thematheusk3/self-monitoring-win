@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.3-win
+- Sistema > **Ações feitas pelo painel**: registro de tudo que muda algo no PC ou no painel (processos, energia,
+  bloqueio, apps, áudio, mídia, tela, captura, FPS, senha, sessões, alertas), com aparelho, IP, sessão, hora e
+  resultado, inclusive tentativas recusadas. Ajustes seguidos (arrastar o volume/brilho) viram uma linha.
+  Filtros por categoria e por aparelho; "Ver ações" em cada sessão de "Quem está acessando".
+- Nome de alguns programas vinha com lixo no fim (ex.: "Spotify" seguido de caracteres estranhos no mixer por app e na análise de
+  processos): o tamanho informado pelo executável era maior que o texto.
+- [ATUALIZAR.md](ATUALIZAR.md): guia de como atualizar, conferir a versão e voltar à anterior.
+
 ## 0.5.2-win
 - Sistema > **Quem está acessando**: sessões abertas com aparelho, IP, origem (este PC, rede local, VPN, internet),
   nome na rede (DNS reverso) e MAC (tabela ARP), última atividade e botão para encerrar a sessão de outro aparelho
