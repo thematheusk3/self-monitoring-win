@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.1-win
+- Controles > Áudio: escolher por qual saída cada app toca (ex.: Chrome no monitor, Spotify no fone), ou "Padrão".
+  Usa a interface interna do Mixer de volume do Windows; o Windows lembra a escolha por executável.
+- `PARIDADE.md`: o que existe só no Windows ou só no Linux e o que dá para levar de um para o outro.
+- Instalador: avisos de programas externos (pip, winget) não interrompem mais a instalação.
+
 ## 0.5.0-win
 Primeira versão para Windows 10/11, a partir da 0.4.3 do Linux. Mesmo frontend e mesma API; backend reescrito:
 

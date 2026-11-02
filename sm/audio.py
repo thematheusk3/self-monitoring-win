@@ -1,11 +1,16 @@
 """Áudio do Windows (Core Audio via pycaw/comtypes): saídas, entradas, volume, mudo, áudio por aplicativo.
 
-Diferenças para o Linux: o volume vai até 100% (não há amplificação) e não existe API pública para
-mandar um app para outra saída (o "Mixer de volume" do Windows usa uma interface interna), então
-essa opção não aparece no painel.
+Saída por aplicativo (ex.: Chrome no monitor, Spotify no fone): é o "Dispositivo de saída" do Mixer de
+volume do Windows. Não há API pública; o Windows usa a interface interna IAudioPolicyConfigFactory
+(a mesma do EarTrumpet e do SoundVolumeView), que só existe a partir do Windows 10 1803 e mudou de
+identificador no 21H2. Se não estiver disponível, a opção some do painel. A escolha fica gravada pelo
+Windows para o executável (vale nas próximas vezes que o app abrir) e "Padrão" desfaz.
+
+O volume vai até 100% (o Windows não amplifica).
 """
 from __future__ import annotations
 
+import ctypes
 import hashlib
 import re
 import warnings
@@ -36,6 +41,82 @@ class AudioError(Exception):
     def __init__(self, message: str, status: int = 400) -> None:
         super().__init__(message)
         self.status = status
+
+
+# ---------- saída por aplicativo (interface interna do Windows) ----------
+POLICY_CLASS = "Windows.Media.Internal.AudioPolicyConfig"
+POLICY_IIDS = ("ab3d4648-e242-459f-b02f-541c70306324",    # Windows 10 21H2+ e Windows 11
+               "2a59116d-6c4f-45e0-a74f-707e3fef9258")    # Windows 10 1803 a 21H1
+DEVINTERFACE_RENDER = "{e6327cad-dcec-4949-ae8a-991e976a79d2}"
+# posição dos métodos na vtable: 6 do IInspectable + 19 internos que não usamos
+SET_PERSISTED, GET_PERSISTED = 25, 26
+ROLES = (0, 1)    # eConsole, eMultimedia (o que o Mixer de volume do Windows altera)
+
+
+class _Routing:
+    """Precisa ser criado dentro de um _Com() (o COM da thread já iniciado)."""
+
+    def __init__(self) -> None:
+        from .hw.gpu import _guid
+        self.cb = ctypes.WinDLL("combase.dll")
+        self.cb.WindowsGetStringRawBuffer.restype = ctypes.c_void_p
+        self.factory = None
+        hs = self._hstring(POLICY_CLASS)
+        try:
+            for iid in POLICY_IIDS:
+                f = ctypes.c_void_p()
+                if self.cb.RoGetActivationFactory(hs, ctypes.byref(_guid(iid)), ctypes.byref(f)) == 0:
+                    self.factory = f
+                    break
+        finally:
+            self.cb.WindowsDeleteString(hs)
+
+    def _hstring(self, s: str) -> ctypes.c_void_p:
+        hs = ctypes.c_void_p()
+        self.cb.WindowsCreateString(s, len(s), ctypes.byref(hs))
+        return hs
+
+    def get(self, pid: int) -> str | None:
+        """Saída escolhida para o processo (id do dispositivo) ou None = segue o padrão do Windows."""
+        from .hw.gpu import _vcall
+        out = ctypes.c_void_p()
+        if _vcall(self.factory, GET_PERSISTED, ctypes.c_long, ctypes.c_uint(pid), ctypes.c_int(0),
+                  ctypes.c_int(1), ctypes.byref(out)) or not out.value:
+            return None
+        try:
+            raw = ctypes.wstring_at(self.cb.WindowsGetStringRawBuffer(out, None))
+        finally:
+            self.cb.WindowsDeleteString(out)
+        # \\?\SWD#MMDEVAPI#{0.0.0.00000000}.{guid}#{e6327cad-...}
+        m = re.search(r"MMDEVAPI#(\{[^}]+\}\.\{[^}]+\})", raw)
+        return m.group(1) if m else None
+
+    def set(self, pid: int, dev_id: str | None) -> None:
+        from .hw.gpu import _vcall
+        hs = self._hstring(f"\\\\?\\SWD#MMDEVAPI#{dev_id}#{DEVINTERFACE_RENDER}") if dev_id else ctypes.c_void_p()
+        try:
+            for role in ROLES:
+                hr = _vcall(self.factory, SET_PERSISTED, ctypes.c_long, ctypes.c_uint(pid), ctypes.c_int(0),
+                            ctypes.c_int(role), hs)
+                if hr:
+                    raise AudioError(f"O Windows recusou a troca de saída (0x{hr & 0xFFFFFFFF:08X}).", 500)
+        finally:
+            if dev_id:
+                self.cb.WindowsDeleteString(hs)
+
+    def close(self) -> None:
+        from .hw.gpu import _vcall
+        if self.factory:
+            _vcall(self.factory, 2, ctypes.c_ulong)    # Release
+            self.factory = None
+
+
+def _routing() -> _Routing | None:
+    try:
+        r = _Routing()
+    except OSError:
+        return None
+    return r if r.factory else None
 
 
 class _Com:
@@ -149,6 +230,7 @@ def state() -> dict:
         capture = EDataFlow.eCapture.value
         dsink, dsource = _default_id(render), _default_id(capture)
         sinks, sources = _devices(render), _devices(capture)
+        routing = _routing()
         apps, recording = [], []
         for d in sinks:
             for g in _sessions(d).values():
@@ -156,7 +238,11 @@ def state() -> dict:
                     continue
                 if not g["pid"] and d.id != dsink:     # "Sons do sistema" existe em toda saída; mostra o da padrão
                     continue
-                apps.append(_stream(g, d.id))
+                s = _stream(g, d.id)
+                s["routed"] = routing.get(g["pid"]) if routing and g["pid"] else None
+                apps.append(s)
+        if routing:
+            routing.close()
         for d in sources:
             for g in _sessions(d).values():
                 if g["active"]:
@@ -167,7 +253,7 @@ def state() -> dict:
             "sources": [_dev(s, dsource) for s in sources],
             "apps": apps, "recording": recording,
             "default_sink": dsink, "default_source": dsource,
-            "max_volume": 100, "can_move": False,
+            "max_volume": 100, "can_move": routing is not None,
         }
 
 
@@ -208,6 +294,7 @@ def action(body: dict) -> dict:
     set_default  {kind: sink|source, name}
     volume       {kind: sink|source|app|rec, name|index, volume}
     mute         {kind: ..., name|index, mute: bool}
+    move         {index, sink}           (app -> outra saída; sink "" = padrão do Windows)
     """
     op = body.get("op")
     kind = body.get("kind", "sink")
@@ -238,8 +325,23 @@ def action(body: dict) -> dict:
             else:
                 raise AudioError("Tipo inválido.")
         elif op == "move":
-            raise AudioError("O Windows não tem uma forma oficial de mudar a saída de um app; use "
-                             "Configurações > Sistema > Som > Mixer de volume no PC.", 501)
+            # sink "" = volta a seguir a saída padrão do Windows
+            sink = body.get("sink") or None
+            if sink is not None:
+                sink = _name_ok(sink)
+                if sink not in {d.id for d in _devices(EDataFlow.eRender.value)}:
+                    raise AudioError("Saída não encontrada.", 404)
+            g = _find_group(int(body["index"]), EDataFlow.eRender.value)
+            if not g["pid"]:
+                raise AudioError("Os sons do sistema sempre saem pela saída padrão.")
+            routing = _routing()
+            if not routing:
+                raise AudioError("Esta versão do Windows não permite escolher a saída de cada app; use "
+                                 "Configurações > Sistema > Som > Mixer de volume no PC.", 501)
+            try:
+                routing.set(g["pid"], sink)
+            finally:
+                routing.close()
         else:
             raise AudioError("Operação inválida.")
     return state()

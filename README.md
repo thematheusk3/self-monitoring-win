@@ -35,12 +35,15 @@ Pode ser adicionado à tela inicial do celular.
 
 ### O que muda em relação à versão Linux
 
+O que existe só em uma versão, o que dá para levar para a outra e o que é impossível está em
+[PARIDADE.md](PARIDADE.md) (atualize ao implementar algo novo). Resumo:
+
 | Recurso | Windows |
 |---|---|
 | Temperatura da CPU, sensores da placa | Só com o **LibreHardwareMonitor** rodando (o Windows não expõe esses sensores). Sem ele, o resto funciona. |
 | Controle da ventoinha (curva/manual) | **Não existe** nesta versão. As ventoinhas aparecem em Sensores (só leitura). Use o software da placa ou o FanControl. |
 | Desbloquear a tela pelo celular | **Impossível** no Windows: a tela de bloqueio só aceita senha/PIN/Windows Hello no próprio PC. Bloquear funciona. |
-| Mandar um app para outra saída de áudio | Sem API pública no Windows; o painel mostra por onde cada app sai, mas a troca é no Mixer de volume do PC. |
+| Mandar um app para outra saída de áudio | Funciona (Windows 10 1803+), pela mesma interface interna que o Mixer de volume usa. O Windows lembra a escolha por executável. |
 | Volume | Até 100% (o Windows não amplifica). |
 | FPS | PresentMon (mede qualquer jogo DirectX/Vulkan/OpenGL, sem configurar o jogo) em vez do MangoHud. |
 | "De qual pacote veio" | Assinatura digital (Authenticode) + informações de versão do executável. |
@@ -198,6 +201,12 @@ Se o login automático do Windows estiver ligado, o painel avisa (qualquer um qu
 **Áudio** (Core Audio): saída padrão (multimídia e comunicação), volume/mudo de cada saída, volume/mudo **de cada
 aplicativo** (como o Mixer de volume), microfone (mudo, volume, entrada padrão) e quais apps estão usando o microfone.
 
+**Saída por aplicativo** (ex.: Chrome pelo monitor, Spotify pelo fone): cada app tem um seletor "Padrão (…)" ou uma
+saída fixa. É o "Dispositivo de saída" do Mixer de volume do Windows; como não há API pública, o painel usa a mesma
+interface interna (`IAudioPolicyConfigFactory`) do EarTrumpet. O Windows grava a escolha para o executável, então ela
+vale nas próximas vezes que o app abrir; "Padrão" desfaz. Se a interface não existir na versão do Windows, o seletor
+some. Alguns apps só trocam de saída ao reiniciar a reprodução.
+
 **Tela**: resolução e taxa de atualização de cada monitor (com o nome real dele e a conexão). Toda mudança precisa ser
 confirmada em 20 s; sem confirmação volta ao modo anterior (proteção contra tela preta). **Brilho/contraste** via
 DDC/CI (o monitor precisa ter DDC/CI ligado no menu). **Apagar tela** põe brilho e contraste em 0: a tela fica
@@ -308,7 +317,8 @@ em `web\js\modules\index.js`.
 ## API
 
 A mesma da versão Linux, exceto: sem `/api/fan`; `POST /api/session/unlock` responde 501 (o Windows não permite);
-`POST /api/audio` com `op: "move"` responde 501; modos de tela têm id `LARGURAxALTURA@HZ` (ex.: `3440x1440@160`) e
+`POST /api/audio` com `op: "move"` aceita `sink: ""` para voltar à saída padrão, e cada app em `GET /api/audio` traz
+`routed` (saída escolhida ou `null`); modos de tela têm id `LARGURAxALTURA@HZ` (ex.: `3440x1440@160`) e
 saídas `DISPLAY1`, `DISPLAY2`...; `GET /api/processes/<pid>/inspect` traz `signature` e `version_info` no lugar de
 `package`/`package_info`.
 
@@ -332,7 +342,7 @@ saídas `DISPLAY1`, `DISPLAY2`...; `GET /api/processes/<pid>/inspect` traz `sign
 | GET | `/api/apps` | aplicativos do menu Iniciar; `/api/apps/<id>/icon`; `POST /api/apps/<id>/launch` |
 | GET/POST | `/api/game` | jogo atual e FPS; `{"fps_enabled": true}` liga o PresentMon |
 | POST | `/api/media` | `{"player": "Spotify.exe", "op": "play_pause"\|"next"\|"previous"\|"seek", "offset": 10}` |
-| GET/POST | `/api/audio` | estado; `{"op": "set_default"\|"volume"\|"mute", "kind": "sink"\|"source"\|"app"\|"rec", ...}` |
+| GET/POST | `/api/audio` | estado; `{"op": "set_default"\|"volume"\|"mute"\|"move", "kind": "sink"\|"source"\|"app"\|"rec", ...}` |
 | GET | `/api/display` | monitores e modos; `POST /api/display/mode` `{"output":"DISPLAY1","mode":"1920x1080@144"}` ou `{"op":"confirm"\|"revert"}` |
 | GET/POST | `/api/display/ddc` | brilho/contraste; `{"bus", "brightness"/"contrast"}` ou `{"bus","op":"dim"\|"restore"}` |
 | POST | `/api/display/dpms` | `{"on": false}` desliga a imagem |

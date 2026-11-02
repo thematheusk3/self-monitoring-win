@@ -158,7 +158,7 @@ try {
             if ($LASTEXITCODE -ge 8) { throw "Falha ao copiar $d (robocopy $LASTEXITCODE)." }
         }
     }
-    foreach ($f in @("server.py", "install.ps1", "install.cmd", "config.example.toml", "requirements.txt", "README.md", "CHANGELOG.md")) {
+    foreach ($f in @("server.py", "install.ps1", "install.cmd", "config.example.toml", "requirements.txt", "README.md", "CHANGELOG.md", "PARIDADE.md")) {
         if (Test-Path (Join-Path $Src $f)) { Copy-Item -Force (Join-Path $Src $f) (Join-Path $Dest $f) }
     }
 

@@ -131,9 +131,13 @@ function renderAudio() {
   if (!a) return;
   const sinkOpts = sel => a.sinks.map(s => `<option value="${esc(s.name)}" ${s.name === sel ? "selected" : ""}>${esc(short(s.description))}</option>`).join("");
   const sinkName = id => short(a.sinks.find(s => s.name === id)?.description || "");
+  // Windows: "routed" = saída escolhida para o app (null = segue a padrão do Windows)
+  const routedOpts = s => `<option value="" ${s.routed ? "" : "selected"}>Padrão (${esc(sinkName(a.default_sink))})</option>` +
+    a.sinks.map(x => `<option value="${esc(x.name)}" ${x.name === s.routed ? "selected" : ""}>${esc(short(x.description))}</option>`).join("");
   const outCtl = s => a.can_move === false
     ? (a.sinks.length > 1 ? `<span class="muted out-sel" title="Saída deste app">${esc(sinkName(s.device))}</span>` : "")
-    : `<select class="search out-sel" data-op="move" data-index="${s.index}" title="Por onde este app sai">${sinkOpts(s.device)}</select>`;
+    : !s.pid && "routed" in s ? ""
+    : `<select class="search out-sel" data-op="move" data-index="${s.index}" title="Por onde este app sai">${"routed" in s ? routedOpts(s) : sinkOpts(s.device)}</select>`;
   const mic = a.sources.find(s => s.default);
   $("[data-body]", root).innerHTML = `<div class="grid">
     <article class="card span-2">
@@ -163,7 +167,7 @@ function renderAudio() {
       : `<p class="muted">Nenhum aplicativo tocando som agora.</p>`}
       <p class="note">${a.can_move === false
         ? "Para mandar um app para outra saída (ex.: o jogo no monitor e o Discord no fone), use no PC: Configurações › Sistema › Som › Mixer de volume."
-        : "Cada app pode sair por um dispositivo diferente, ex.: o jogo no HDMI e o Discord no fone."}</p>
+        : "Cada app pode sair por um dispositivo diferente, ex.: o Chrome no monitor e o Spotify no fone. O Windows lembra a escolha nas próximas vezes que o app abrir; \"Padrão\" desfaz."}</p>
     </article></div>`;
 }
 
