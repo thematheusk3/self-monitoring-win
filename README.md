@@ -27,7 +27,8 @@ Backend em Python (biblioteca padrão + `psutil`, `pycaw` e `winrt`); o resto é
 - **Apps**: abre pelo celular, na tela do PC, qualquer item do menu Iniciar (programas, apps da Loja, jogos da Steam).
 - **Rede**: conexões por programa (para onde, quanto envia/recebe), conexões encerradas e portas abertas.
 - **Sensores**: temperaturas, ventoinhas, tensões e potências do LibreHardwareMonitor, agrupados por componente.
-- **Sistema**: informações do PC e do monitor, **bloquear a tela**, **desligar/reiniciar** (com timer),
+- **Sistema**: informações do PC e do monitor, **quem está acessando o painel** (aparelho, IP, nome na rede, MAC,
+  última atividade, encerrar a sessão de outro aparelho, histórico de logins e senhas erradas), **bloquear a tela**, **desligar/reiniciar** (com timer),
   atualizações pendentes (Windows Update + winget).
 
 Gráficos com os últimos 5 minutos, atualização em tempo real (SSE, 1 s), tema claro/escuro, layout para celular e PC.
@@ -134,6 +135,11 @@ JavaScript e dos scripts PowerShell a cada push. Registre mudanças no `CHANGELO
 - Acesso por senha. Só o hash (scrypt com salt) é salvo, em `data\auth.json`; a pasta `data` só é legível por administradores.
 - A primeira senha só pode ser criada na própria máquina (localhost), não pela rede.
 - Depois de 5 senhas erradas em 5 min, o IP fica bloqueado por 2 min. Trocar a senha encerra as sessões dos outros aparelhos.
+- **Todo login aparece como notificação na tela do PC** (aparelho, IP, nome na rede), assim como todo IP bloqueado por
+  senha errada. Isso não depende dos alertas: sempre acontece. A aba **Sistema > Quem está acessando** lista as
+  sessões abertas e deixa encerrar qualquer uma; logins, saídas, senhas erradas e bloqueios ficam em
+  `dataccess-log.json` (últimos 200). Nada é consultado fora da rede: para um IP da internet o painel só oferece um
+  link para ver a localização.
 - O próprio servidor, o núcleo do Windows e processos críticos (csrss, lsass, winlogon, services...) são protegidos:
   finalizá-los derrubaria o Windows.
 - A finalização confere o horário de criação do processo, para não matar um PID reaproveitado (no Windows os PIDs
@@ -352,3 +358,5 @@ saídas `DISPLAY1`, `DISPLAY2`...; `GET /api/processes/<pid>/inspect` traz `sign
 
 Autenticação: cookie de sessão obtido em `POST /login` (campo `password`). Troca de senha:
 `POST /api/auth/password` com `{"current": "...", "new": "..."}`. Sair: `POST /logout`.
+Sessões: `GET /api/auth/sessions` (sessões abertas e últimos acessos, com origem do IP);
+`POST /api/auth/sessions/end` com `{"id": "..."}` (id público da sessão) ou `{"others": true}`.

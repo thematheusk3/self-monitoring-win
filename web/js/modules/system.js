@@ -16,6 +16,10 @@ function mount(el, a) {
       <p class="note">Trocar a senha desconecta os outros aparelhos.</p>
       <form method="post" action="/logout" style="margin-top:12px"><button class="btn" type="submit" style="width:100%">Sair</button></form>
     </article>
+    <article class="card span-2" data-who>
+      <div class="card-head"><div class="card-title">Quem está acessando</div><button class="btn btn-sm" data-who-others hidden>Encerrar as outras</button></div>
+      <div data-who-body class="note" style="margin-top:0">Carregando…</div>
+    </article>
     ${app.info.features.unlock ? `<article class="card" data-session>
       <div class="card-head"><div class="card-title">Sessão</div><div data-sess-chip></div></div>
       <div data-sess-body class="note" style="margin-top:0">Carregando…</div>
@@ -57,6 +61,7 @@ function mount(el, a) {
   if (app.info.features.power) setupPower(el);
   if (app.info.features.updates) setupUpdates(el);
   if (app.info.features.unlock) setupSession(el);
+  setupWho(el);
   app.onSnapshot(update);
 }
 
@@ -124,6 +129,66 @@ export function openUnlock(a, onDone) {
   });
   dlg.showModal();
   f.password.focus();
+}
+
+// ---------- quem está acessando ----------
+let whoTimer = null;
+const EVENTS = {
+  login: ["Entrou", "good"], setup: ["Senha criada", "good"], logout: ["Saiu", ""],
+  fail: ["Senha errada", "warning"], lockout: ["Bloqueado", "critical"], ended: ["Encerrou sessão", ""],
+};
+
+const ago = t => (Date.now() / 1000 - t < 60 ? "agora" : `há ${duration(Date.now() / 1000 - t).replace(/ \d+s$/, "")}`);
+const when = t => new Date(t * 1000).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+
+function whereHtml(w, ip) {
+  if (!w) return `<span class="mono">${esc(ip || "?")}</span>`;
+  const extra = [w.host && `<b>${esc(w.host)}</b>`, esc(w.origin),
+    w.mac && `MAC <span class="mono">${esc(w.mac)}</span>${w.mac_random ? " (aleatório)" : ""}`].filter(Boolean).join(" · ");
+  const geo = w.kind === "internet" ? ` · <a href="https://ipinfo.io/${encodeURIComponent(w.ip)}" target="_blank" rel="noopener noreferrer">ver localização</a>` : "";
+  return `<span class="mono">${esc(w.ip)}</span> · ${extra}${geo}`;
+}
+
+function setupWho(el) {
+  const card = $("[data-who]", el);
+  card.addEventListener("click", async e => {
+    const b = e.target.closest("[data-who-end], [data-who-others]");
+    if (!b) return;
+    const others = b.hasAttribute("data-who-others");
+    if (others && !confirm("Desconectar todos os outros aparelhos? Eles vão precisar da senha para entrar de novo.")) return;
+    b.disabled = true;
+    try {
+      const r = await app.api("/api/auth/sessions/end", { method: "POST", body: others ? { others: true } : { id: b.dataset.whoEnd } });
+      toast(r.ended ? (others ? `${r.ended} sessão(ões) encerrada(s).` : "Sessão encerrada.") : "Não havia outras sessões.");
+    } catch (err) { toast(err.message, true); }
+    refreshWho();
+  });
+}
+
+async function refreshWho() {
+  const card = $("[data-who]", root);
+  let st;
+  try { st = await app.api("/api/auth/sessions"); } catch { return; }
+  const body = $("[data-who-body]", card);
+  if (!st.enabled) { body.innerHTML = "A senha do painel está desligada na configuração (auth_enabled = false): qualquer um na rede entra sem login."; return; }
+  const now = Date.now() / 1000;
+  $("[data-who-others]", card).hidden = st.sessions.length < 2;
+  body.innerHTML = `<div class="who-list">${st.sessions.map(s => `<div class="who-row">
+      <div class="who-main">
+        <div><b>${esc(s.device)}</b> ${s.current ? `<span class="chip good">este aparelho</span>` : ""}
+          ${now - s.seen < 120 ? `<span class="chip good">ativo</span>` : `<span class="muted">visto ${ago(s.seen)}</span>`}</div>
+        <div class="muted">${whereHtml(s.where, s.last_ip)}${s.ip !== s.last_ip ? ` · entrou por <span class="mono">${esc(s.ip)}</span>` : ""}</div>
+        <div class="muted">Entrou em ${when(s.created)} · expira em ${when(s.expires)}</div>
+      </div>
+      ${s.current ? "" : `<button class="btn btn-sm" data-who-end="${esc(s.id)}">Encerrar</button>`}
+    </div>`).join("") || `<p class="muted">Nenhuma sessão ativa.</p>`}</div>
+    <details style="margin-top:10px"><summary class="stat-label" style="cursor:pointer">Últimos acessos (${st.log.length})</summary>
+      <div class="who-list">${st.log.map(e => `<div class="who-row"><div class="who-main">
+        <div><span class="chip ${EVENTS[e.event]?.[1] || ""}">${esc(EVENTS[e.event]?.[0] || e.event)}</span> ${esc(e.device)} <span class="muted">· ${when(e.time)}</span></div>
+        <div class="muted">${whereHtml(e.where, e.ip)}${e.target ? ` · ${esc(e.target)}` : ""}</div></div></div>`).join("") || `<p class="muted">Nada registrado ainda.</p>`}</div>
+    </details>
+    <p class="note">Todo login e todo bloqueio por senha errada aparecem como notificação na tela do PC. O nome vem do DNS da rede
+      (nem todo aparelho responde) e o MAC da tabela ARP; celulares costumam usar MAC aleatório por rede.</p>`;
 }
 
 const POWER = {
@@ -302,9 +367,10 @@ export default {
   id: "system", title: "Sistema", icon: "ⓘ", mount,
   show: () => {
     if (app.snapshot) update(app.snapshot);
+    refreshWho(); whoTimer = setInterval(refreshWho, 10000);
     if (app.info.features.unlock) { refreshSession(); sessTimer = setInterval(refreshSession, 5000); }
     if (app.info.features.power) { refreshTimer(); timerTick = setInterval(() => (timerState ? renderTimer() : null), 1000); }
     if (app.info.features.updates) pollUpdates();
   },
-  hide: () => { clearInterval(sessTimer); sessTimer = null; clearInterval(timerTick); timerTick = null; clearTimeout(updTimer); },
+  hide: () => { clearInterval(whoTimer); whoTimer = null; clearInterval(sessTimer); sessTimer = null; clearInterval(timerTick); timerTick = null; clearTimeout(updTimer); },
 };

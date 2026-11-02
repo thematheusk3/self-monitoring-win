@@ -1,6 +1,11 @@
 # Changelog
 
-## Não lançado
+## 0.5.2-win
+- Sistema > **Quem está acessando**: sessões abertas com aparelho, IP, origem (este PC, rede local, VPN, internet),
+  nome na rede (DNS reverso) e MAC (tabela ARP), última atividade e botão para encerrar a sessão de outro aparelho
+  (ou todas as outras). Histórico dos últimos acessos: logins, saídas, senhas erradas, bloqueios, sessões encerradas.
+- **Todo login no painel mostra uma notificação na tela do PC** (e todo IP bloqueado por senha errada), sempre,
+  independente dos alertas. O alerta "Novo acesso ao painel" continua indo para o painel/ntfy e não duplica no PC.
 - Captura de tela (e demais avisos na tela do PC) recusada logo após instalar, com "as notificações estão
   desativadas?": antes da primeira notificação o Windows não conhece o app e a consulta da configuração falha
   com "Elemento não encontrado"; agora isso não é tratado como "desativadas" e o aviso é exibido.

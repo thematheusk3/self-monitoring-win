@@ -194,6 +194,46 @@ def net_clear(req):
     return {"ok": True}
 
 
+# ---------- quem está acessando o painel ----------
+@route("GET", "/api/auth/sessions")
+def auth_sessions(req):
+    from ..clients import describe, device
+    if not req.ctx.config.auth_enabled:
+        return {"enabled": False, "sessions": [], "log": []}
+    where = {}
+
+    def info(ip):
+        if ip and ip not in where:
+            where[ip] = describe(ip)
+        return where.get(ip)
+
+    sessions = [{**s, "device": device(s["agent"]), "where": info(s["last_ip"])}
+                for s in req.auth.list_sessions(req._session_id())]
+    log = [{**e, "device": device(e.get("agent", "")), "where": info(e.get("ip"))} for e in req.auth.access_log()[:100]]
+    return {"enabled": True, "sessions": sessions, "log": log}
+
+
+@route("POST", "/api/auth/sessions/end")
+def auth_sessions_end(req):
+    from ..clients import device
+    body = req.json() or {}
+    ip, ua = req.client_address[0], req.headers.get("User-Agent", "")
+    current = req._session_id()
+    if body.get("others"):
+        n = len(req.auth.list_sessions(current)) - 1
+        req.auth.end_all_except(current)
+        req.auth.record("ended", ip, ua, target="todas as outras sessões")
+        return {"ok": True, "ended": max(0, n)}
+    sid = str(body.get("id", ""))
+    if current and sid == req.auth.public_id(current):
+        return Response({"error": "Esta é a sessão deste aparelho: use \"Sair\"."}, 400)
+    gone = req.auth.end_by_id(sid)
+    if not gone:
+        return Response({"error": "Sessão não encontrada (já encerrada?)."}, 404)
+    req.auth.record("ended", ip, ua, target=f"{device(gone.get('agent', ''))} — {gone.get('last_ip', gone.get('ip'))}")
+    return {"ok": True, "ended": 1}
+
+
 # ---------- sessão gráfica ----------
 @route("GET", "/api/session")
 def session_status(req):

@@ -5,6 +5,7 @@ import ipaddress
 import json
 import logging
 import mimetypes
+import threading
 import time
 from http import HTTPStatus
 from http.cookies import SimpleCookie
@@ -12,7 +13,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
-from . import api
+from . import api, clients
 from .api import Response, routes  # noqa: F401  (registra rotas)
 from .auth import MIN_LEN, Auth
 from .config import ROOT
@@ -57,7 +58,7 @@ class Handler(BaseHTTPRequestHandler):
     def _authed(self) -> bool:
         if not self.ctx.config.auth_enabled:
             return True
-        return self.auth.valid(self._session_id())
+        return self.auth.valid(self._session_id(), self.client_address[0])
 
     def _is_local(self) -> bool:
         try:
@@ -126,6 +127,8 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/login" and method == "POST":
             return self._login()
         if path == "/logout" and method == "POST":
+            if self.auth.valid(self._session_id()):
+                self.auth.record("logout", self.client_address[0], self.headers.get("User-Agent", ""))
             self.auth.end_session(self._session_id())
             return self._redirect("/login", self._session_cookie("", 0))
 
@@ -166,17 +169,19 @@ class Handler(BaseHTTPRequestHandler):
         if (wait := self.auth.locked_for(ip)):
             return self._redirect(f"/login?bloqueado={wait}")
         pw = self._form().get("password", "")
+        ua = self.headers.get("User-Agent", "")
         if self.auth.check_password(pw):
             self.auth.clear_fails(ip)
-            sid = self.auth.create_session(ip, self.headers.get("User-Agent", ""))
-            if self.ctx.alerts:
-                self.ctx.alerts.event("panel_login", f"Login no painel a partir de {ip} ({_device(self.headers.get('User-Agent', ''))}).",
-                                      "info", key=sid)
+            sid = self.auth.create_session(ip, ua)
+            self.auth.record("login", ip, ua)
+            self._announce("login", ip, ua, key=sid)
             return self._redirect("/", self._session_cookie(sid))
         self.auth.register_fail(ip)
-        if self.ctx.alerts and self.auth.locked_for(ip):
-            self.ctx.alerts.event("login_fail", f"O IP {ip} errou a senha do painel várias vezes e foi bloqueado.",
-                                  "critical", key=ip)
+        if self.auth.locked_for(ip):
+            self.auth.record("lockout", ip, ua)
+            self._announce("lockout", ip, ua, key=ip)
+        else:
+            self.auth.record("fail", ip, ua)
         time.sleep(1)  # desacelera força bruta
         self._redirect("/login?erro=1")
 
@@ -195,9 +200,34 @@ class Handler(BaseHTTPRequestHandler):
         if len(pw) < MIN_LEN:
             return self._redirect("/setup?erro=curta")
         self.auth.set_password(pw)
-        sid = self.auth.create_session(self.client_address[0], self.headers.get("User-Agent", ""))
+        ua = self.headers.get("User-Agent", "")
+        sid = self.auth.create_session(self.client_address[0], ua)
+        self.auth.record("setup", self.client_address[0], ua)
         log.info("senha cadastrada pelo navegador local")
         self._redirect("/", self._session_cookie(sid))
+
+    def _announce(self, event: str, ip: str, ua: str, key: str) -> None:
+        """Todo login (e todo bloqueio por senha errada) aparece na tela do PC, sempre: não depende dos
+        alertas estarem ligados. Também vira alerta (painel/ntfy) conforme a aba Alertas."""
+        alerts = self.ctx.alerts
+
+        def run() -> None:
+            who = clients.summary(ip, ua, wait=2)
+            if event == "login":
+                title, text, rid, level = "🔐 Novo acesso ao painel", f"Entrou com a senha: {who}.", "panel_login", "info"
+            else:
+                title, text, rid, level = ("⛔ Senha errada no painel",
+                                           f"Bloqueado por errar a senha várias vezes: {who}.", "login_fail", "critical")
+            log.warning("%s: %s", title, text)
+            try:
+                from .desktop import notify_pc
+                notify_pc(title, text, urgency="critical" if level == "critical" else "normal")
+            except Exception:  # noqa: BLE001
+                log.exception("aviso de acesso na tela do PC")
+            if alerts:
+                alerts.event(rid, text, level, key=key, pc=False)
+
+        threading.Thread(target=run, daemon=True, name="announce").start()
 
     def _change_password(self) -> None:
         body = self.json() or {}
@@ -258,14 +288,6 @@ class Handler(BaseHTTPRequestHandler):
                 self.wfile.flush()
         except (BrokenPipeError, ConnectionResetError, OSError):
             pass
-
-
-def _device(ua: str) -> str:
-    """Resumo do User-Agent: 'Android · Chrome', 'Linux · Firefox'..."""
-    os_ = next((n for k, n in (("Android", "Android"), ("iPhone", "iPhone"), ("iPad", "iPad"), ("Windows", "Windows"),
-                               ("Mac OS", "Mac"), ("Linux", "Linux")) if k in ua), "dispositivo")
-    br = next((n for k, n in (("Firefox", "Firefox"), ("Edg/", "Edge"), ("Chrome", "Chrome"), ("Safari", "Safari")) if k in ua), "navegador")
-    return f"{os_} · {br}"
 
 
 class Server(ThreadingHTTPServer):
