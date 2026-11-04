@@ -50,6 +50,7 @@ O que existe só em uma versão, o que dá para levar para a outra e o que é im
 | FPS | PresentMon (mede qualquer jogo DirectX/Vulkan/OpenGL, sem configurar o jogo) em vez do MangoHud. |
 | "De qual pacote veio" | Assinatura digital (Authenticode) + informações de versão do executável. |
 | Atualizações | Windows Update (inclui drivers) + winget. |
+| Atualização do painel | Versão instalada × GitHub, changelog, link do repositório e aviso "Nova" na navegação. |
 
 ## Instalar
 
@@ -260,6 +261,16 @@ FPS baixo. A mesma condição não repete por 30 min. Canais: o painel, a **tela
 *Sistema > Atualizações pendentes*: Windows Update (a mesma busca das Configurações, inclui drivers; leva de
 30 s a alguns minutos) e `winget upgrade`. Verifica sozinho a cada 6 h. Atualizações do Windows e drivers aparecem
 destacadas. **O painel não instala atualizações**.
+
+### Atualização do painel
+
+A aba *Atualização* compara a versão instalada com a do GitHub e mostra o changelog, o link do repositório e os comandos para
+atualizar. Quando há versão maior, a navegação mostra **Nova**. O aviso depende do número da versão: um commit que não
+aumenta `__version__` não gera aviso.
+
+O painel só lê dois arquivos públicos do repositório (`raw.githubusercontent.com`), com ele aberto e no máximo a cada 6 h. Não
+envia dados do PC, não baixa nem instala nada. Para desligar: `check = false` em `[update]` no `config.toml`. A aba continua
+mostrando o changelog da versão instalada.
 
 ## Desligar / reiniciar
 

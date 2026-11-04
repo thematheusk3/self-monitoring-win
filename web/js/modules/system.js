@@ -403,7 +403,7 @@ function update(snap) {
 
   const i = app.info;
   $("[data-srv]", root).innerHTML = `<div class="card-head"><div class="card-title">Monitor</div></div><dl class="kv">
-    ${row("Versão", esc(i.version))}
+    ${row("Versão", `<a href="#update">${esc(i.version)}</a>`)}
     ${row("Amostragem", `${i.sample_interval}s`)}
     ${row("Processos", `a cada ${i.process_interval}s`)}
     ${row("Finalizar processos", i.features.kill ? "Ativado" : "Desativado")}

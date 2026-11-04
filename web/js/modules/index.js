@@ -10,5 +10,6 @@ import controls from "./controls.js";
 import alerts from "./alerts.js";
 import sensors from "./sensors.js";
 import system from "./system.js";
+import update from "./update.js";
 
-export const MODULES = [overview, apps, controls, processes, net, sensors, system, alerts];
+export const MODULES = [overview, apps, controls, processes, net, sensors, system, update, alerts];

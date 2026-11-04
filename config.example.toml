@@ -39,3 +39,9 @@ lhm_url = "http://127.0.0.1:8085/data.json"
 # Caminho do PresentMon (FPS dos jogos). Vazio = procura o instalado pelo winget (--scope machine)
 # ou um PresentMon*.exe na pasta tools. Use só caminhos em pastas que exigem administrador.
 presentmon = ""
+
+[update]
+# A aba Atualização consulta o GitHub (só com o painel aberto, no máximo a cada 6 h) para avisar de versão nova.
+# Não baixa nem instala nada. Com false, mostra só o changelog desta versão.
+check = true
+repo = "thematheusk3/self-monitoring-win"

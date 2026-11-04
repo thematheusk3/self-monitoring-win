@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.0-win
+- Nova aba **Atualização**: versão instalada e a do GitHub, botão "Verificar agora", como atualizar, link do repositório
+  e o changelog de cada versão, com as novas e a instalada marcadas.
+- A navegação mostra **Nova** na aba Atualização quando o GitHub tem versão maior que a instalada. No celular, a aba fica
+  em "Mais", que ganha um marcador.
+- A verificação só consulta o GitHub, não baixa nem instala nada. Roda com o painel aberto, no máximo a cada 6 h, e pode
+  ser desligada em `[update] check = false` no `config.toml`.
+- Sistema > Monitor: a versão agora leva à aba Atualização.
+
 ## 0.6.0-win
 - **Interface repaginada**, com as mesmas funções. A aparência lembra a placa do próprio PC: fundo verde de máscara de
   solda, dourado nos botões e na navegação, medidores em LEDs. Temas escuro e claro.

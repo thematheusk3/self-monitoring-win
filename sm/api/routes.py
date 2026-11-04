@@ -457,6 +457,19 @@ def updates_status(req):
     return req.ctx.updates.status() if req.ctx.updates else Response({"error": "indisponível"}, 404)
 
 
+@route("GET", "/api/panel-update")
+def panel_update(req):
+    return req.ctx.selfupdate.status() if req.ctx.selfupdate else Response({"error": "indisponível"}, 404)
+
+
+@route("POST", "/api/panel-update/check")
+def panel_update_check(req):
+    if not req.ctx.selfupdate:
+        return Response({"error": "indisponível"}, 404)
+    req.ctx.selfupdate.check_now()
+    return req.ctx.selfupdate.status()
+
+
 @route("POST", "/api/updates/refresh")
 def updates_refresh(req):
     if not req.ctx.updates:

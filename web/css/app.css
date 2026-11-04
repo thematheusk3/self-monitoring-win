@@ -138,6 +138,15 @@ body.stale #views { opacity: .72; transition: opacity .3s; }
 .tabs.has-more.open .tab:nth-child(n+5):not(.tab-more) { display: flex; order: -1; }
 .tabs.has-more.open .tab:first-child { grid-column-start: 1; }
 .tabs.open { box-shadow: 0 -12px 28px rgb(0 0 0 / .4); }
+/* versão nova: etiqueta com texto na aba; no celular "Mais" ganha um marcador (o nome acessível explica) */
+.tab-flag {
+  position: absolute; top: 5px; left: 50%; margin-left: 6px; padding: 0 4px; border-radius: var(--r-s);
+  background: var(--accent); color: var(--on-accent); font-size: 11px; font-weight: 700; line-height: 15px;
+}
+.tab-more.has-update::after {
+  content: ""; position: absolute; top: 12px; left: 50%; margin-left: 10px; width: 9px; height: 9px;
+  border-radius: 1px; background: var(--accent);
+}
 
 @media (min-width: 1024px) {
   :root { --topbar-h: 0px; }
@@ -162,6 +171,7 @@ body.stale #views { opacity: .72; transition: opacity .3s; }
   .tab .ico { font-size: 19px; }
   .tab:hover { background: var(--surface-1); color: var(--text-primary); }
   .tab[aria-current="page"] { background: var(--surface-1); color: var(--accent); }
+  .tab-flag { position: static; margin-left: auto; padding: 1px 6px; font-size: 12px; line-height: 16px; }
   .tab[aria-current="page"]::before { top: 9px; bottom: 9px; left: 0; right: auto; width: 3px; height: auto; }
   .top-actions { flex-wrap: wrap; justify-content: flex-end; padding: 12px 4px 0; border-top: 1px solid var(--border); }
   .top-actions .live { order: -1; flex: 1 0 100%; flex-wrap: wrap; margin-bottom: 4px; }
@@ -551,6 +561,19 @@ body.login-page { display: grid; place-items: center; min-height: 100dvh; paddin
 .who-main { flex: 1; min-width: 0; display: grid; gap: 2px; overflow-wrap: anywhere; }
 .audit-filters { display: flex; gap: 6px; flex-wrap: wrap; }
 .audit-filters .search { flex: none; width: auto; min-height: 32px; font-size: 13.5px; }
+
+/* Atualização do painel */
+.update-head { margin: 0 0 10px; font-size: 26px; line-height: 1.1; font-weight: 700; font-stretch: 82%; text-wrap: balance; }
+.update-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.update-cmd { margin: 0; padding: 10px 12px; border-radius: var(--r-s); background: var(--surface-2); font: 13px/1.6 var(--mono); overflow-x: auto; }
+.release { border-top: 1px solid var(--border); }
+.release:first-child { border-top: 0; }
+.release summary { display: flex; align-items: center; gap: 8px; min-height: 44px; cursor: pointer; }
+.release summary::before { content: "▸"; color: var(--text-muted); }
+.release[open] summary::before { content: "▾"; }
+.release-v { font-weight: 650; font-variant-numeric: tabular-nums; }
+.release ul { margin: 0 0 12px; padding-left: 20px; max-width: 86ch; color: var(--text-secondary); }
+.release li + li { margin-top: 6px; }
 
 /* ---------- movimento reduzido ---------- */
 @media (prefers-reduced-motion: reduce) {

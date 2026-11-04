@@ -34,6 +34,7 @@ class Context:
         self.game = None        # GameMonitor (jogo atual / FPS)
         self.alerts = None      # Alerts
         self.updates = None     # Updates
+        self.selfupdate = None  # SelfUpdate
         self.power_timer = None # PowerTimer
         self.media = None       # Media (controles de mídia do Windows), criado pelo coletor "media"
 

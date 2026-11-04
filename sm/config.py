@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import re
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -37,6 +38,9 @@ class Config:
     lhm_url: str = "http://127.0.0.1:8085/data.json"
     # FPS (PresentMon)
     presentmon: str = ""                 # caminho do PresentMon; vazio = procura em tools/
+    # aviso de versão nova (consulta o GitHub; não instala nada)
+    update_check: bool = True
+    update_repo: str = "thematheusk3/self-monitoring-win"
 
 
 def load(path: Path | None = None) -> Config:
@@ -51,6 +55,10 @@ def load(path: Path | None = None) -> Config:
     collectors = raw.get("collectors", {})
     sensors = raw.get("sensors", {})
     game = raw.get("game", {})
+    update = raw.get("update", {})
+    repo = str(update.get("repo", Config.update_repo))
+    if not re.fullmatch(r"[\w.-]+/[\w.-]+", repo):
+        raise ValueError(f'[update] repo inválido: "{repo}" (use o formato dono/repositorio)')
 
     cfg = Config(
         host=server.get("host", Config.host),
@@ -75,5 +83,7 @@ def load(path: Path | None = None) -> Config:
         net_closed_max=max(100, int(sampling.get("net_closed_max", Config.net_closed_max))),
         lhm_url=str(sensors.get("lhm_url", Config.lhm_url)),
         presentmon=str(game.get("presentmon", Config.presentmon)),
+        update_check=bool(update.get("check", True)),
+        update_repo=repo,
     )
     return cfg

@@ -11,7 +11,7 @@ painel (`sm\`, `web\`, `server.py`) e o Python próprio dele.
 
 ## 1. Ver qual versão está rodando
 
-No painel: aba **Sistema**, cartão **Monitor**, linha **Versão** (ex.: `0.6.0-win`). A lista do que mudou em cada
+No painel: aba **Sistema**, cartão **Monitor**, linha **Versão** (ex.: `0.7.0-win`), ou aba **Atualização**, que também avisa quando há versão nova no GitHub. A lista do que mudou em cada
 versão está no [CHANGELOG.md](CHANGELOG.md).
 
 ## 2. Baixar a versão nova
