@@ -237,6 +237,12 @@ DESCRIBERS = {
     "exited_clear": lambda r, b, p: ("panel", "Limpar o histórico de processos encerrados", None),
     "net_clear": lambda r, b, p: ("panel", "Limpar o histórico de conexões encerradas", None),
     "alerts_config_set": lambda r, b, p: ("panel", "Alterar as regras/canais de alertas", None),
+    "mural_set": lambda r, b, p: ("panel", "Alterar as preferências do Mural", "mural"),
+    "mural_art_set": lambda r, b, p: ("panel", f"Trocar a arte do jogo {p.get('key')} no Mural", None),
+    "mural_art_reset": lambda r, b, p: ("panel", f"Voltar à arte padrão do jogo {p.get('key')} no Mural", None),
+    "webhook_token": lambda r, b, p: ("panel", "Gerar token do webhook", None),
+    "webhook_revoke": lambda r, b, p: ("panel", "Desligar o webhook", None),
+    "webhook_test": lambda r, b, p: ("panel", "Enviar notificação de teste do webhook", None),
     "alerts_clear": lambda r, b, p: ("panel", "Limpar o histórico de alertas", None),
     "auth_sessions_end": lambda r, b, p: ("panel", "Encerrar todas as outras sessões" if b.get("others") else "Encerrar a sessão de outro aparelho", None),
 }

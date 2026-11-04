@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.8.0-win
+- Nova aba **Mural**: uma tela cheia para deixar aberta, como um mostrador de mesa. Modos **Início** (relógio, data, clima
+  e previsão), **Jogo** (arte do jogo de fundo, logo, FPS, 1% low, CPU, GPU, temperaturas, VRAM, tempo de jogo e player de
+  música, cada item ligado ou desligado) e **Música** (capa de fundo, faixa, progresso e controles). O modo **Automático**
+  escolhe sozinho: jogo, senão música, senão Início.
+- Na primeira vez, você busca a sua cidade; dá para trocar depois. O clima vem da Open-Meteo, sem cadastro.
+- **Capas dos jogos**: escolha o fundo de cada jogo entre as artes da Steam (fundo, capa vertical, banner) ou envie uma
+  imagem. Jogos fora da Steam usam a imagem enviada.
+- **Notificações por webhook** (aba Alertas): outros programas enviam título, mensagem, ícone, nível, origem, link e
+  duração. O aviso entra nos alertas, vai para a tela do PC e o ntfy, se ligados, e aparece no Mural. Fica desligado até você
+  gerar um token. Guia de uso no README.
+- Para abrir o Mural direto em um tablet ou monitor: endereço do painel + `/#mural:abrir`.
+
 ## 0.7.0-win
 - Nova aba **Atualização**: versão instalada e a do GitHub, botão "Verificar agora", como atualizar, link do repositório
   e o changelog de cada versão, com as novas e a instalada marcadas.

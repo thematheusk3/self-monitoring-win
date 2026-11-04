@@ -6,10 +6,11 @@ import overview from "./overview.js";
 import processes from "./processes.js";
 import net from "./net.js";
 import apps from "./apps.js";
+import mural from "./mural.js";
 import controls from "./controls.js";
 import alerts from "./alerts.js";
 import sensors from "./sensors.js";
 import system from "./system.js";
 import update from "./update.js";
 
-export const MODULES = [overview, apps, controls, processes, net, sensors, system, update, alerts];
+export const MODULES = [overview, apps, controls, processes, mural, net, sensors, system, update, alerts];

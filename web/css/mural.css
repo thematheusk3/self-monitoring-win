@@ -1,0 +1,150 @@
+/* Mural: tela cheia para deixar aberta, vista de longe. Sempre escura: o conteúdo fica sobre arte de jogo ou capa de disco.
+   Texto grande e números condensados; o tamanho vem da tela (vmin), do celular à TV. */
+
+.mural {
+  position: fixed; inset: 0; z-index: 100; overflow: hidden; display: block;
+  color-scheme: dark; color: #f4f8f3; background: #0a1915; cursor: none;
+  --dim: #d3e0d8; --pad: clamp(18px, 4.5vmin, 64px);
+}
+.mural.awake { cursor: default; }
+body.mural-open { overflow: hidden; }
+.mural:fullscreen { background: #0a1915; }
+
+.mural-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.mural-scrim { position: absolute; inset: 0; pointer-events: none; }
+.mural[data-scene="game"] .mural-scrim {
+  background: linear-gradient(to top, rgb(4 12 9 / .92), rgb(4 12 9 / .35) 55%, rgb(4 12 9 / .6));
+}
+.mural[data-scene="music"] .mural-bg { filter: blur(44px) saturate(1.3) brightness(.62); scale: 1.2; }
+.mural[data-scene="music"] .mural-scrim { background: rgb(4 12 9 / .35); }
+
+.mural-scene {
+  position: absolute; inset: 0; padding: var(--pad); padding-bottom: max(var(--pad), env(safe-area-inset-bottom));
+  transition: translate 2s linear;
+}
+.mural-dim { color: var(--dim); margin: 0; }
+.mural time { font-variant-numeric: tabular-nums; }
+.mural .i { width: 1em; height: 1em; }
+
+/* barra superior de Jogo e Música */
+.mural-top { display: flex; justify-content: space-between; align-items: center; gap: 16px; font-size: clamp(18px, 3.2vmin, 34px); font-weight: 600; }
+.mural-mini-w { display: inline-flex; align-items: center; gap: .35em; font-variant-numeric: tabular-nums; }
+.mural-mini-w span { color: var(--dim); font-weight: 400; }
+
+/* Início: o relógio é o protagonista */
+.mural-home { height: 100%; display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: var(--pad); align-items: end; }
+.mural-clock time {
+  display: block; font-size: clamp(96px, 30vmin, 420px); font-weight: 600; font-stretch: 68%; line-height: .86; letter-spacing: -.01em;
+}
+.mural-clock p { margin: .5em 0 0; font-size: clamp(20px, 4vmin, 46px); }
+.mural-clock p:first-letter { text-transform: uppercase; }
+.mural-clock .mural-dim { font-size: clamp(15px, 2.4vmin, 26px); margin-top: .4em; }
+.mural-side { min-width: 0; display: grid; gap: clamp(14px, 3vmin, 34px); justify-items: end; text-align: right; }
+.mural-temp { display: flex; align-items: center; justify-content: flex-end; gap: .2em; font-size: clamp(56px, 14vmin, 180px); line-height: 1; }
+.mural-temp b { font-weight: 600; font-stretch: 72%; font-variant-numeric: tabular-nums; }
+.mural-temp .i { width: .85em; height: .85em; color: #e8be57; }
+.mural-weather p { margin: .25em 0 0; font-size: clamp(14px, 2.3vmin, 24px); }
+.mural-weather .mural-w-city { font-size: clamp(18px, 3.2vmin, 34px); font-weight: 650; color: #f4f8f3; }
+.mural-days { list-style: none; margin: 0; padding: 0; display: flex; gap: clamp(14px, 3.4vmin, 44px); }
+.mural-days li { display: grid; justify-items: center; gap: .15em; font-size: clamp(14px, 2.3vmin, 24px); }
+.mural-days .i { width: 1.5em; height: 1.5em; color: #e8be57; }
+.mural-days li > span:first-child { text-transform: capitalize; color: var(--dim); }
+
+/* Jogo */
+.mural-game { height: 100%; display: grid; grid-template-rows: auto 1fr auto; grid-template-columns: minmax(0, 1fr) auto; gap: clamp(12px, 3vmin, 32px); }
+.mural-game .mural-top { grid-column: 1 / -1; }
+.mural-title { grid-column: 1 / -1; align-self: end; min-width: 0; }
+.mural-title h1 { margin: 0; font-size: clamp(38px, 10vmin, 130px); font-weight: 700; font-stretch: 74%; line-height: 1; text-wrap: balance; }
+.mural-logo { display: block; max-width: min(58vw, 720px); max-height: 30vh; object-fit: contain; object-position: left bottom; }
+.mural-title p { margin-top: .5em; font-size: clamp(15px, 2.6vmin, 28px); }
+.mural-stats { display: flex; flex-wrap: wrap; align-items: flex-end; gap: clamp(14px, 4vmin, 52px); min-width: 0; }
+.mural-stat { display: grid; }
+.mural-stat b { font-size: clamp(26px, 6vmin, 76px); font-weight: 600; font-stretch: 72%; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.mural-stat span { font-size: clamp(13px, 2vmin, 22px); color: var(--dim); }
+.mural-stat.big b { font-size: clamp(56px, 15vmin, 200px); color: #e8be57; }
+.mural-player { display: flex; align-items: center; gap: 12px; align-self: end; max-width: min(38vw, 420px); padding: 8px; border-radius: 8px; background: rgb(4 12 9 / .62); }
+.mural-player img, .mural-noart { flex: none; width: clamp(44px, 9vmin, 84px); aspect-ratio: 1; border-radius: 4px; object-fit: cover; display: grid; place-items: center; background: #1c3b32; }
+.mural-player div { min-width: 0; display: grid; }
+.mural-player b, .mural-player span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mural-player b { font-size: clamp(14px, 2.4vmin, 24px); }
+.mural-player span:not(.mural-noart) { font-size: clamp(12px, 2vmin, 20px); color: var(--dim); }
+
+/* Música */
+.mural-music { height: 100%; display: grid; grid-template-rows: auto 1fr; gap: clamp(12px, 3vmin, 32px); }
+.mural-track { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: clamp(20px, 6vmin, 80px); align-items: center; min-height: 0; }
+.mural-art { width: min(62vh, 44vw); aspect-ratio: 1; object-fit: cover; border-radius: 10px; box-shadow: 0 24px 70px rgb(0 0 0 / .55); }
+.mural-info { min-width: 0; }
+.mural-info h1 { margin: 0; font-size: clamp(34px, 9vmin, 112px); font-weight: 700; font-stretch: 74%; line-height: 1.02; overflow-wrap: anywhere; text-wrap: balance;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.mural-artist { margin: .4em 0 0; font-size: clamp(20px, 4.2vmin, 50px); font-weight: 500; }
+.mural-info .mural-dim { font-size: clamp(14px, 2.5vmin, 26px); margin-top: .25em; }
+.mural-prog { height: 6px; margin-top: clamp(14px, 3vmin, 30px); border-radius: 3px; background: rgb(255 255 255 / .28); overflow: hidden; }
+.mural-prog i { display: block; height: 100%; background: #f4f8f3; transition: width 1s linear; }
+.mural-btns { display: flex; gap: 10px; margin-top: 14px; max-width: 460px; opacity: 0; transition: opacity .2s; }
+.mural.awake .mural-btns { opacity: 1; }
+.mural-btns .btn { flex: 1; min-height: 48px; font-size: 20px; background: rgb(4 12 9 / .55); border-color: rgb(255 255 255 / .3); color: #f4f8f3; }
+
+/* notificação */
+.mural-note {
+  position: absolute; top: var(--pad); right: var(--pad); z-index: 3; display: flex; gap: 14px; align-items: flex-start;
+  width: min(460px, calc(100vw - 2 * var(--pad))); padding: 14px 16px; border-radius: 10px;
+  background: #132b24; border: 1px solid #2a4f44; border-left: 4px solid #e8be57;
+  box-shadow: 0 16px 44px rgb(0 0 0 / .5); animation: note-in .28s var(--ease);
+}
+.mural-note.warning { border-left-color: #ffb86b; }
+.mural-note.critical { border-left-color: #ff7b78; }
+.mural-note-ico { flex: none; font-size: 26px; line-height: 1.1; color: #e8be57; display: grid; }
+.mural-note div { min-width: 0; overflow-wrap: anywhere; }
+.mural-note b { font-size: 18px; }
+.mural-note p { margin: 4px 0 0; color: var(--dim); }
+.mural-note small { display: block; margin-top: 4px; color: #93aea1; font-size: 13px; }
+@keyframes note-in { from { translate: 0 -14px; opacity: 0; } }
+
+/* controles: aparecem ao mexer o mouse ou tocar */
+.mural-bar {
+  position: absolute; left: 50%; top: max(14px, env(safe-area-inset-top)); z-index: 4; translate: -50% 0;
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; max-width: calc(100vw - 24px); padding: 8px; border-radius: 10px;
+  background: rgb(10 25 21 / .92); border: 1px solid #2a4f44; opacity: 0; pointer-events: none; transition: opacity .2s;
+}
+.mural.awake .mural-bar { opacity: 1; pointer-events: auto; }
+.mural.awake .mural-top [data-date] { visibility: hidden; }   /* a barra ocupa esse espaço enquanto está visível */
+
+@media (orientation: portrait), (max-width: 640px) {
+  .mural-home { grid-template-columns: 1fr; align-content: center; }
+  .mural-side { justify-items: start; text-align: left; }
+  .mural-temp { justify-content: flex-start; }
+  .mural-track { grid-template-columns: 1fr; justify-items: center; text-align: center; align-content: center; }
+  .mural-art { width: min(70vw, 44vh); }
+  .mural-info { width: 100%; }
+  .mural-btns { margin-inline: auto; }
+  .mural-game { grid-template-columns: 1fr; }
+  .mural-player { max-width: 100%; }
+  .mural-logo { max-width: 80vw; }
+}
+
+/* ---------- aba Mural (configurações) ---------- */
+.mural-open-card .btn-primary { margin-top: 12px; }
+.mural-opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px 16px; }
+.mural-city-now { margin: 0 0 6px; }
+.mural-city-q { width: 100%; margin-top: 4px; }
+.city-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.city-list .btn { width: 100%; justify-content: flex-start; font-weight: 400; text-align: left; padding-block: 6px; height: auto; flex-wrap: wrap; }
+.cover-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.cover-tile { position: relative; display: grid; gap: 6px; padding: 0 0 8px; border: 1px solid var(--border); border-radius: var(--r-m); background: var(--surface-2); color: var(--text-primary); cursor: pointer; overflow: hidden; text-align: left; }
+.cover-tile:hover { border-color: var(--accent); }
+.cover-tile img, .cover-empty { display: grid; place-items: center; width: 100%; aspect-ratio: 460 / 215; object-fit: cover; background: var(--track); color: var(--text-secondary); font-size: 28px; font-weight: 700; }
+.cover-name { padding: 0 8px; font-size: 13px; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cover-tile .chip { position: absolute; top: 6px; left: 6px; }
+.art-choices { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); margin-top: 12px; }
+.art-choice { display: grid; gap: 4px; padding: 4px; border: 2px solid var(--border); border-radius: var(--r-m); background: none; color: var(--text-primary); font-size: 13px; text-align: center; cursor: pointer; }
+.art-choice[aria-pressed="true"] { border-color: var(--accent); }
+.art-choice img { width: 100%; height: 110px; object-fit: cover; border-radius: var(--r-s); background: var(--track); }
+.art-choice:disabled { display: none; }
+.art-upload { width: 100%; margin-top: 12px; }
+.webhook-token { margin: 8px 0; padding: 10px 12px; border-radius: var(--r-s); background: var(--surface-2); font-family: var(--mono); font-size: 13px; overflow-wrap: anywhere; user-select: all; }
+.webhook-doc { margin: 8px 0 0; padding: 10px 12px; border-radius: var(--r-s); background: var(--surface-2); font: 12.5px/1.55 var(--mono); overflow-x: auto; }
+.webhook-fields { margin: 8px 0 0; padding-left: 18px; font-size: 13.5px; color: var(--text-secondary); }
+.webhook-fields li + li { margin-top: 3px; }
+.note-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.al-icon { display: inline-grid; vertical-align: -.1em; margin-right: 4px; }
+.al-source { display: block; font-size: 12.5px; }

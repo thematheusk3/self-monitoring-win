@@ -35,6 +35,8 @@ class Context:
         self.alerts = None      # Alerts
         self.updates = None     # Updates
         self.selfupdate = None  # SelfUpdate
+        self.mural = None       # Mural
+        self.webhook = None     # Webhook
         self.power_timer = None # PowerTimer
         self.media = None       # Media (controles de mídia do Windows), criado pelo coletor "media"
 

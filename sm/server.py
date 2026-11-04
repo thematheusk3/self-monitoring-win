@@ -23,7 +23,8 @@ log = logging.getLogger(__name__)
 WEB = ROOT / "web"
 COOKIE = "sm_session"
 FONT = "/fonts/archivo.woff2"
-PUBLIC = {"/login", "/setup", "/manifest.webmanifest", "/icon.svg", "/css/app.css", FONT}
+# /api/webhook/notify não usa a sessão: a rota confere o token dela
+PUBLIC = {"/login", "/setup", "/manifest.webmanifest", "/icon.svg", "/css/app.css", FONT, "/api/webhook/notify"}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -120,7 +121,7 @@ class Handler(BaseHTTPRequestHandler):
         path = url.path
 
         auth_on = self.ctx.config.auth_enabled
-        if auth_on and not self.auth.has_password() and path not in ("/setup", "/css/app.css", "/icon.svg", FONT):
+        if auth_on and not self.auth.has_password() and path not in ("/setup", "/css/app.css", "/icon.svg", FONT, "/api/webhook/notify"):
             return self._redirect("/setup") if not path.startswith("/api/") else \
                 self._json({"error": "senha ainda não cadastrada"}, 401)
 

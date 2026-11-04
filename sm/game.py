@@ -227,7 +227,9 @@ class GameMonitor:
             w = (self.ctx.data.get("focus") or {}).get("window") or {}
             name = w.get("desktop") if w.get("pid") == pid else None
             game = {"appid": None, "name": name or (pname or "?").removesuffix(".exe"), "since": None,
-                    "pid": pid, "source": "presentmon"}
+                    "pid": pid, "source": "presentmon", "exe": pname}
+        if game:
+            game = {**game, "key": game_key(game)}
         return {
             "enabled": self.enabled, "config_ok": (self.exe is not None) if self.enabled else None,
             "available": self.exe is not None, "conf_path": str(self.exe) if self.exe else None,
@@ -238,6 +240,13 @@ class GameMonitor:
             "cpu_load": None, "gpu_load": None,
             "log_file": pname,
         }
+
+
+def game_key(game: dict) -> str:
+    """Identifica o jogo nas preferências do Mural (arte escolhida)."""
+    if game.get("appid"):
+        return f"steam:{game['appid']}"
+    return "exe:" + (re.sub(r"[^a-z0-9._-]+", "-", (game.get("exe") or game.get("name") or "?").lower()).strip("-")[:80] or "x")
 
 
 _names: dict[str, str | None] = {}
@@ -258,6 +267,25 @@ def steam_name(appid: str) -> str | None:
         m = re.search(r'"name"\s+"([^"]+)"', _acf(appid) or "")
         _names[appid] = m.group(1) if m else None
     return _names[appid]
+
+
+NOT_GAME_NAMES = re.compile(r"redistributable|steamworks|proton |steam linux runtime|^steamvr$", re.I)
+
+
+def steam_games() -> list[tuple[str, str]]:
+    """(appid, nome) dos jogos instalados, em todas as bibliotecas da Steam."""
+    out: dict[str, str] = {}
+    for root in STEAM_ROOTS:
+        for lib in _libraries(root):
+            for acf in (lib / "steamapps").glob("appmanifest_*.acf"):
+                appid = acf.stem.split("_", 1)[1]
+                try:
+                    m = re.search(r'"name"\s+"([^"]+)"', acf.read_text(encoding="utf-8", errors="replace"))
+                except OSError:
+                    continue
+                if m and not NOT_GAME_NAMES.search(m.group(1)):
+                    out[appid] = m.group(1)
+    return list(out.items())
 
 
 def steam_install_dir(appid: str) -> Path | None:

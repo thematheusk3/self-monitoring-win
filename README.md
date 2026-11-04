@@ -50,6 +50,8 @@ O que existe só em uma versão, o que dá para levar para a outra e o que é im
 | FPS | PresentMon (mede qualquer jogo DirectX/Vulkan/OpenGL, sem configurar o jogo) em vez do MangoHud. |
 | "De qual pacote veio" | Assinatura digital (Authenticode) + informações de versão do executável. |
 | Atualizações | Windows Update (inclui drivers) + winget. |
+| Mural | Tela cheia com relógio, clima, jogo (arte, FPS, CPU, GPU) e música. |
+| Webhook | Outros programas enviam notificações para o painel. |
 | Atualização do painel | Versão instalada × GitHub, changelog, link do repositório e aviso "Nova" na navegação. |
 
 ## Instalar
@@ -255,6 +257,54 @@ Aba **Alertas** (e o sino no topo). Regras: temperatura da CPU/GPU (sustentada p
 processo suspeito novo, porta nova aberta para a rede, login no painel, IP bloqueado por senha errada, atualizações,
 FPS baixo. A mesma condição não repete por 30 min. Canais: o painel, a **tela do PC** (notificação do Windows) e
 **push no celular via ntfy** (use um tópico com nome longo e aleatório). Há um botão de teste.
+
+## Mural
+
+Uma tela cheia para deixar aberta num monitor, tablet ou celular. Abra pela aba *Mural* ou direto em `/#mural:abrir`. Mexa o
+mouse ou toque na tela para trocar o modo, entrar em tela cheia ou sair (também com Esc).
+
+| Modo | O que mostra |
+|---|---|
+| Automático | Jogo aberto; senão, música tocando; senão, Início. |
+| Início | Relógio, data, clima e previsão de 3 dias. |
+| Jogo | Arte do jogo de fundo, logo e os itens escolhidos: FPS, 1% low, frametime, CPU, GPU, temperaturas, VRAM, RAM, tempo de jogo e player. |
+| Música | Capa de fundo, faixa, artista, álbum, progresso, controles, hora e temperatura. |
+
+- **Clima:** escolha a cidade na aba. A previsão vem da [Open-Meteo](https://open-meteo.com/), sem cadastro; só as coordenadas
+  da cidade saem do PC, e nada é consultado antes da escolha.
+- **Capas:** cada jogo usa a arte do cache da Steam (ou da CDN dela, se faltar) ou uma imagem sua, reduzida no navegador antes do envio.
+- **FPS** depende da leitura com o PresentMon (ver [FPS dos jogos](#fps-dos-jogos-presentmon)).
+- **Tela apagando:** impedir a tela de apagar exige HTTPS ou localhost. Pelo IP da rede, ajuste o tempo de tela no próprio aparelho.
+- **Tela cheia:** o iPhone não oferece tela cheia para páginas. Adicione o painel à Tela de Início para abrir sem as barras do Safari.
+
+## Notificações por webhook
+
+Outros programas avisam pelo painel. Gere o token na aba *Alertas*: ele aparece uma vez, e o painel guarda só o hash. Sem
+token, o webhook fica desligado.
+
+```bash
+curl -X POST http://SEU-PC:8765/api/webhook/notify \
+  -H "Authorization: Bearer SEU_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Backup concluído", "message": "120 GB copiados.", "icon": "check", "level": "info", "source": "Backup"}'
+```
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `title` | texto, obrigatório | Até 120 caracteres. |
+| `message` | texto | Até 1000 caracteres. |
+| `icon` | texto | Um emoji ou nome de ícone (a lista completa está na aba Alertas). Sem ele, usa o sino. |
+| `level` | texto | `info` (padrão), `warning` ou `critical`. |
+| `source` | texto | Nome do programa que enviou, até 60 caracteres. |
+| `url` | texto | Link `http(s)` aberto a partir do alerta. |
+| `duration` | número | Segundos na tela do Mural, de 3 a 300 (padrão 12). |
+| `silent` | booleano | `true`: só no painel e no Mural, sem tela do PC nem ntfy. |
+
+Respostas: `200` com `{"ok": true, "id": 12}`; `400` campo inválido (com `error`); `401` token errado; `403` webhook desligado;
+`429` limite excedido, com `Retry-After`. Limites: 60 notificações por minuto e 5 tokens errados por IP a cada minuto.
+
+O token dá acesso só a esta rota, não ao resto do painel. O painel usa HTTP: na rede local o token viaja sem criptografia, então
+não exponha a porta na internet; use uma VPN.
 
 ## Atualizações
 
