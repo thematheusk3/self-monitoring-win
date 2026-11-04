@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.9.0-win
+- **Cores vivas no Mural**: a paleta agora vem da arte do jogo ou da capa da música e muda com transição suave. O texto
+  continua legível, porque a paleta garante o contraste.
+- **Céu real no Início**: o fundo segue o amanhecer, o dia, o entardecer e a noite da sua cidade, e fica acinzentado com chuva
+  ou tempo fechado.
+- Telas redesenhadas: painéis de vidro, clima com mais detalhes, anéis de CPU, GPU e RAM, gráfico de FPS, capa com brilho na
+  cor da arte, troca de arte com fade e movimento lento de fundo, que respeita "reduzir movimento".
+- **Motor de eventos**: cada acontecimento tem prioridade. Avisos simples passam no canto (info 5 s, warning 8 s); alertas
+  críticos ocupam a tela inteira por 20 s e devolvem a tela anterior. O mais urgente passa na frente, e os demais esperam na
+  fila. Toque em Dispensar ou tecle Esc para fechar.
+- O Mural também avisa quando um jogo abre e quando a música muda. Dá para desligar isso na aba Mural.
+- Webhook: novo campo `display` (`auto`, `toast` ou `fullscreen`), para uma notificação ocupar a tela inteira; `duration`
+  sem valor agora usa o tempo padrão do nível. Rajadas de notificações não se perdem mais no Mural.
+
 ## 0.8.0-win
 - Nova aba **Mural**: uma tela cheia para deixar aberta, como um mostrador de mesa. Modos **Início** (relógio, data, clima
   e previsão), **Jogo** (arte do jogo de fundo, logo, FPS, 1% low, CPU, GPU, temperaturas, VRAM, tempo de jogo e player de

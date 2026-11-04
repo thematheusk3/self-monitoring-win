@@ -39,17 +39,18 @@ class _Tmp(unittest.TestCase):
 class CleanTest(unittest.TestCase):
     def test_minimum_and_defaults(self):
         n = clean({"title": "  Oi  "})
-        self.assertEqual((n["title"], n["level"], n["duration"], n["silent"]), ("Oi", "info", 12, False))
+        self.assertEqual((n["title"], n["level"], n["duration"], n["display"], n["silent"]), ("Oi", "info", 0, "auto", False))
 
     def test_limits_and_truncation(self):
         n = clean({"title": "x" * 500, "message": "y" * 5000, "duration": 99999})
         self.assertEqual((len(n["title"]), len(n["text"]), n["duration"]), (120, 1000, 300))
-        self.assertEqual(clean({"title": "a", "duration": 0})["duration"], 3)
+        self.assertEqual(clean({"title": "a", "duration": 1})["duration"], 3)
+        self.assertEqual(clean({"title": "a", "duration": 0})["duration"], 0)
 
     def test_rejects_bad_input(self):
         for body in ([], "x", {}, {"title": ""}, {"title": "a", "level": "x"}, {"title": "a", "duration": "muito"},
                      {"title": "a", "url": "javascript:alert(1)"}, {"title": "a", "url": 'https://x"><img'},
-                     {"title": "a", "icon": "<script>"}, {"title": "a", "icon": "../x"}):
+                     {"title": "a", "icon": "<script>"}, {"title": "a", "icon": "../x"}, {"title": "a", "display": "x"}):
             with self.assertRaises(WebhookError, msg=body):
                 clean(body)
 

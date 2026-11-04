@@ -27,6 +27,7 @@ MAX_FAILS = 5               # tokens errados por IP dentro de WINDOW
 MAX_ACCEPTED = 60           # notificações aceitas dentro de WINDOW
 WINDOW = 60
 LEVELS = ("info", "warning", "critical")
+DISPLAYS = ("auto", "toast", "fullscreen")
 RX_ICON = re.compile(r"[a-z0-9-]{1,40}")
 
 
@@ -56,12 +57,16 @@ def clean(body) -> dict:
     icon = str(body.get("icon") or "").strip()
     if icon and not RX_ICON.fullmatch(icon) and (len(icon) > 8 or icon.isascii()):
         raise WebhookError('"icon" deve ser o nome de um ícone ou um emoji.')
-    try:
-        duration = max(3, min(300, int(body.get("duration", 12))))
+    display = body.get("display", "auto")
+    if display not in DISPLAYS:
+        raise WebhookError(f'"display" deve ser um destes: {", ".join(DISPLAYS)}.')
+    try:      # 0: o Mural usa o tempo padrão do nível (info 5 s, warning 8 s, critical 12 s, tela inteira 20 s)
+        duration = int(body.get("duration") or 0)
+        duration = max(3, min(300, duration)) if duration else 0
     except (TypeError, ValueError):
         raise WebhookError('"duration" deve ser um número de segundos.') from None
     return {"title": title[:120], "text": str(body.get("message") or "").strip()[:1000], "level": level, "icon": icon,
-            "url": url, "source": str(body.get("source") or "").strip()[:60], "duration": duration,
+            "url": url, "source": str(body.get("source") or "").strip()[:60], "duration": duration, "display": display,
             "silent": bool(body.get("silent"))}
 
 

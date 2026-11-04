@@ -132,13 +132,13 @@ class Alerts:
         threading.Thread(target=self._deliver, args=(a, pc), daemon=True).start()
 
     def external(self, title: str, text: str = "", level: str = "info", icon: str = "", url: str = "", source: str = "",
-                 duration: int = 12, silent: bool = False) -> dict:
+                 duration: int = 0, display: str = "auto", silent: bool = False) -> dict:
         """Notificação de outro programa (webhook): não passa por regra nem cooldown.
         silent=True: fica só no painel e no Mural, sem PC nem ntfy."""
         with self.lock:
             self._seq += 1
             a = {"seq": self._seq, "rule": "webhook", "title": title, "text": text, "level": level, "icon": icon,
-                 "url": url, "source": source, "duration": duration, "time": time.time(), "read": False}
+                 "url": url, "source": source, "duration": duration, "display": display, "time": time.time(), "read": False}
             self.history.appendleft(a)
             self._save()
         log.info("webhook: %s (%s)", title, source or "sem origem")

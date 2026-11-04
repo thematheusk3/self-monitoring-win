@@ -274,6 +274,10 @@ mouse ou toque na tela para trocar o modo, entrar em tela cheia ou sair (também
   da cidade saem do PC, e nada é consultado antes da escolha.
 - **Capas:** cada jogo usa a arte do cache da Steam (ou da CDN dela, se faltar) ou uma imagem sua, reduzida no navegador antes do envio.
 - **FPS** depende da leitura com o PresentMon (ver [FPS dos jogos](#fps-dos-jogos-presentmon)).
+- **Cores:** vêm da arte do jogo ou da capa da música; no Início, do céu da cidade na hora atual. Se a imagem não permitir a
+  leitura das cores, fica a paleta anterior.
+- **Eventos:** avisos passam no canto; alertas críticos ocupam a tela inteira e devolvem a cena anterior. Maior prioridade passa
+  na frente, e os demais esperam na fila. As opções ficam na aba Mural.
 - **Tela apagando:** impedir a tela de apagar exige HTTPS ou localhost. Pelo IP da rede, ajuste o tempo de tela no próprio aparelho.
 - **Tela cheia:** o iPhone não oferece tela cheia para páginas. Adicione o painel à Tela de Início para abrir sem as barras do Safari.
 
@@ -297,7 +301,8 @@ curl -X POST http://SEU-PC:8765/api/webhook/notify \
 | `level` | texto | `info` (padrão), `warning` ou `critical`. |
 | `source` | texto | Nome do programa que enviou, até 60 caracteres. |
 | `url` | texto | Link `http(s)` aberto a partir do alerta. |
-| `duration` | número | Segundos na tela do Mural, de 3 a 300 (padrão 12). |
+| `display` | texto | Como aparece no Mural: `auto` (padrão; `critical` ocupa a tela), `toast` ou `fullscreen`. |
+| `duration` | número | Segundos no Mural, de 3 a 300. Padrão: info 5, warning 8, critical 12, tela inteira 20. |
 | `silent` | booleano | `true`: só no painel e no Mural, sem tela do PC nem ntfy. |
 
 Respostas: `200` com `{"ok": true, "id": 12}`; `400` campo inválido (com `error`); `401` token errado; `403` webhook desligado;

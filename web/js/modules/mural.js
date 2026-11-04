@@ -34,7 +34,11 @@ function mount(el, a) {
       <div class="card-head"><div class="card-title">Modo</div></div>
       <div class="seg" data-modes>${MODES.map(([id, l]) => `<button data-mode="${id}" aria-pressed="false">${l}</button>`).join("")}</div>
       <p class="note" data-mode-help></p>
-      <label class="check"><input type="checkbox" data-notes> Mostrar notificações no Mural</label>
+      <div class="mural-toggles">
+        <label class="check"><input type="checkbox" data-pref="notifications"> Mostrar notificações no Mural</label>
+        <label class="check"><input type="checkbox" data-pref="takeover"> Alertas críticos ocupam a tela inteira</label>
+        <label class="check"><input type="checkbox" data-pref="context"> Avisar quando um jogo abrir ou a música mudar</label>
+      </div>
     </article>
     <article class="card span-2">
       <div class="card-head"><div class="card-title">O que mostrar no modo Jogo</div></div>
@@ -74,7 +78,7 @@ function render() {
   renderCity();
   $$("[data-mode]", root).forEach(b => b.setAttribute("aria-pressed", b.dataset.mode === conf.mode));
   $("[data-mode-help]", root).textContent = MODE_HELP[conf.mode];
-  $("[data-notes]", root).checked = conf.notifications;
+  $$("[data-pref]", root).forEach(c => { c.checked = conf[c.dataset.pref]; });
   $("[data-opts]", root).innerHTML = GAME_OPTS.map(([k, l]) =>
     `<label class="check"><input type="checkbox" data-opt="${k}" ${conf.game[k] ? "checked" : ""}> ${l}</label>`).join("");
   renderFps();
@@ -135,7 +139,7 @@ function onInput(e) {
 function onChange(e) {
   const t = e.target;
   if (t.dataset.opt) save({ game: { [t.dataset.opt]: t.checked } });
-  else if (t.matches("[data-notes]")) save({ notifications: t.checked });
+  else if (t.dataset.pref) save({ [t.dataset.pref]: t.checked });
 }
 
 async function onClick(e) {

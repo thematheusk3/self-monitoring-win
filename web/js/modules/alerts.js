@@ -90,7 +90,8 @@ function renderWebhook() {
         <li><b>level</b>: info, warning ou critical (padrão info)</li>
         <li><b>source</b>: nome do programa que enviou</li>
         <li><b>url</b>: link aberto a partir do alerta</li>
-        <li><b>duration</b>: segundos na tela do Mural, de 3 a 300 (padrão 12)</li>
+        <li><b>display</b>: como aparece no Mural: auto (padrão, critical ocupa a tela), toast ou fullscreen</li>
+        <li><b>duration</b>: segundos no Mural, de 3 a 300 (padrão: info 5, warning 8, critical 12, tela inteira 20)</li>
         <li><b>silent</b>: true para ficar só no painel e no Mural, sem tela do PC nem ntfy</li>
       </ul>
       <p>O painel usa HTTP na rede local: o token viaja sem criptografia. Chame de programas na sua rede ou por VPN.</p>

@@ -15,7 +15,8 @@ RAW = {
     "current": {"temperature_2m": 22.1, "apparent_temperature": 23.6, "relative_humidity_2m": 70, "weather_code": 2,
                 "is_day": 0, "wind_speed_10m": 9.4},
     "daily": {"time": ["2026-11-04", "2026-11-05"], "weather_code": [61, 0], "temperature_2m_max": [30.0, 31.5],
-              "temperature_2m_min": [18.0, 19.1], "precipitation_probability_max": [60, 0]},
+              "temperature_2m_min": [18.0, 19.1], "precipitation_probability_max": [60, 0],
+              "sunrise": ["2026-11-04T05:27", "2026-11-05T05:26"], "sunset": ["2026-11-04T18:21", "2026-11-05T18:22"]},
 }
 JPEG = b"\xff\xd8\xff\xe0" + b"0" * 100
 
@@ -37,6 +38,11 @@ class WeatherTest(unittest.TestCase):
         self.assertEqual((w["temp"], w["label"], w["icon"]), (22.1, "Parcialmente nublado", "cloud-moon"))
         self.assertEqual(w["days"][0]["label"], "Chuva fraca")
         self.assertEqual(w["days"][1]["max"], 31.5)
+        self.assertEqual(w["days"][0]["sunset"], "2026-11-04T18:21")
+
+    def test_parse_without_sun_times(self):
+        raw = {**RAW, "daily": {k: v for k, v in RAW["daily"].items() if k not in ("sunrise", "sunset")}}
+        self.assertIsNone(parse_weather(raw)["days"][1]["sunrise"])
 
     def test_unknown_code_does_not_break(self):
         self.assertEqual(describe_weather(1234)[0], "Tempo indefinido")
@@ -58,6 +64,13 @@ class PreferencesTest(_Tmp):
             st = m.update({"location": {"name": "Garça", "admin": "São Paulo", "country": "Brasil", "lat": -22.2, "lon": -49.6}})
         self.assertEqual(st["weather"]["temp"], 22.1)
         self.assertEqual(Mural().conf["location"]["name"], "Garça")
+
+    def test_event_options_default_on_and_persist(self):
+        m = Mural()
+        self.assertTrue(m.status()["takeover"])
+        m.update({"takeover": False, "context": False})
+        self.assertFalse(Mural().status()["takeover"])
+        self.assertFalse(Mural().status()["context"])
 
     def test_rejects_bad_values(self):
         m = Mural()

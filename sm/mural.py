@@ -82,7 +82,8 @@ def parse_weather(raw: dict) -> dict:
     for i, day in enumerate(d.get("time") or []):
         dl, di = describe_weather(d["weather_code"][i])
         days.append({"date": day, "max": d["temperature_2m_max"][i], "min": d["temperature_2m_min"][i],
-                     "rain": d["precipitation_probability_max"][i], "label": dl, "icon": di})
+                     "rain": d["precipitation_probability_max"][i], "label": dl, "icon": di,
+                     "sunrise": (d.get("sunrise") or [None] * (i + 1))[i], "sunset": (d.get("sunset") or [None] * (i + 1))[i]})
     return {"temp": cur.get("temperature_2m"), "feels": cur.get("apparent_temperature"),
             "humidity": cur.get("relative_humidity_2m"), "wind": cur.get("wind_speed_10m"),
             "label": label, "icon": icon, "days": days}
@@ -113,7 +114,8 @@ class Mural:
         except (OSError, ValueError):
             c = {}
         return {"location": c.get("location"), "mode": c.get("mode") if c.get("mode") in MODES else "auto",
-                "notifications": bool(c.get("notifications", True)),
+                "notifications": bool(c.get("notifications", True)), "takeover": bool(c.get("takeover", True)),
+                "context": bool(c.get("context", True)),
                 "game": {**GAME_DEFAULTS, **{k: bool(v) for k, v in (c.get("game") or {}).items() if k in GAME_DEFAULTS}},
                 "art": c.get("art") or {}}
 
@@ -122,7 +124,7 @@ class Mural:
 
     def status(self) -> dict:
         with self.lock:
-            out = {k: self.conf[k] for k in ("location", "mode", "notifications", "game")}
+            out = {k: self.conf[k] for k in ("location", "mode", "notifications", "takeover", "context", "game")}
         return {**out, "weather": self.weather(), "weather_error": self.weather_error, "weather_at": self.weather_at or None}
 
     def update(self, body: dict) -> dict:
@@ -132,8 +134,9 @@ class Mural:
                 if body["mode"] not in MODES:
                     raise ValueError("Modo desconhecido.")
                 self.conf["mode"] = body["mode"]
-            if "notifications" in body:
-                self.conf["notifications"] = bool(body["notifications"])
+            for k in ("notifications", "takeover", "context"):
+                if k in body:
+                    self.conf[k] = bool(body[k])
             for k, v in (body.get("game") or {}).items():
                 if k in GAME_DEFAULTS:
                     self.conf["game"][k] = bool(v)
@@ -179,7 +182,7 @@ class Mural:
             url = "https://api.open-meteo.com/v1/forecast?" + urllib.parse.urlencode({
                 "latitude": loc["lat"], "longitude": loc["lon"], "timezone": "auto", "forecast_days": 4,
                 "current": "temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,is_day,wind_speed_10m",
-                "daily": "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max"})
+                "daily": "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset"})
             self.weather_data = parse_weather(_fetch_json(url))
             self.weather_error = None
             self.weather_at = time.time()
