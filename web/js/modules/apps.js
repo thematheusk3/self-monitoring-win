@@ -1,4 +1,5 @@
 // Aba Apps: abre pelo celular os aplicativos instalados (os mesmos do menu Iniciar).
+import { ic } from "../icons.js";
 import { $, esc, toast } from "../ui.js";
 
 let app, root, data = null, q = "", cat = "", loading = false;
@@ -68,7 +69,7 @@ function render() {
 }
 
 export default {
-  id: "apps", title: "Apps", icon: "▤", mount,
+  id: "apps", title: "Apps", icon: ic("grid-nine"), mount,
   enabled: a => !!a.info?.features?.launch,
   show: load,
 };

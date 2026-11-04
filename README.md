@@ -305,7 +305,7 @@ sm/
     pdh.py                contadores de desempenho do Windows (PDH)
     gpu.py                GPUs: DXGI (lista), contadores "GPU Engine" (uso por processo), NVML (NVIDIA)
     lhm.py                sensores do LibreHardwareMonitor
-web/                      frontend (o mesmo da versão Linux, com os textos adaptados)
+web/                      frontend (sem build; fonte Archivo, licença OFL, e ícones Phosphor, licença MIT, incluídos)
 ```
 
 **Novo coletor**: crie `sm\collectors\docker.py`:

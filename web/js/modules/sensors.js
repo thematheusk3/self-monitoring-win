@@ -1,3 +1,4 @@
+import { ic } from "../icons.js";
 import { $, esc, statusChip } from "../ui.js";
 
 let app, root;
@@ -43,4 +44,4 @@ function update(snap) {
   }).join("");
 }
 
-export default { id: "sensors", title: "Sensores", icon: "🌡", mount, show: () => app.snapshot && update(app.snapshot) };
+export default { id: "sensors", title: "Sensores", icon: ic("thermometer"), mount, show: () => app.snapshot && update(app.snapshot) };

@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.6.0-win
+- **Interface repaginada**, com as mesmas funções. A aparência lembra a placa do próprio PC: fundo verde de máscara de
+  solda, dourado nos botões e na navegação, medidores em LEDs. Temas escuro e claro.
+- Visão geral: faixa no topo que diz se está tudo bem ("Tudo normal", "Fique de olho", "Precisa de atenção"), cita o
+  motivo, avisa quando faltam dados do PC e mostra uma coluna de LEDs por thread da CPU.
+- Navegação: barra lateral no PC. No celular, 4 abas e "Mais", em vez de uma barra que escondia abas ao rolar.
+- Ícones em SVG no lugar dos emojis e fonte Archivo incluída no painel: a aparência é a mesma em qualquer aparelho e
+  nada é baixado da internet.
+- Acessibilidade: contraste mínimo de 4,5:1 nos dois temas, foco de teclado visível, áreas de toque maiores no celular,
+  campos de senha com rótulo, link "Ir para o conteúdo", botões de ícone com nome e respeito a "reduzir movimento".
+- Ícones de alguns apps não apareciam (erro 500): o handle de 64 bits do bitmap estourava ao ser passado para a API.
+- Com muitos pedidos ao mesmo tempo, o servidor recusava conexões e a página carregava pela metade (ex.: logo quebrado).
+- Tabela de atualizações não passa mais da largura da tela no celular.
+- A interface antiga continua disponível: veja "Voltar para a interface antiga" no [ATUALIZAR.md](ATUALIZAR.md).
+
 ## 0.5.3-win
 - Sistema > **Ações feitas pelo painel**: registro de tudo que muda algo no PC ou no painel (processos, energia,
   bloqueio, apps, áudio, mídia, tela, captura, FPS, senha, sessões, alertas), com aparelho, IP, sessão, hora e

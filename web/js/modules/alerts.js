@@ -1,4 +1,5 @@
 // Aba Alertas: histórico, regras (liga/desliga + limite) e canais de envio.
+import { ic } from "../icons.js";
 import { $, esc, toast } from "../ui.js";
 
 let app, root, data = null, conf = null;
@@ -72,7 +73,7 @@ function renderList() {
     return `<li class="${a.read ? "" : "unread"}"><span class="chip ${cls}">${lab}</span>
       <div><b>${esc(a.title)}</b><div class="muted">${esc(a.text)}</div></div>
       <span class="muted al-time">${new Date(a.time * 1000).toLocaleString("pt-BR")}</span></li>`;
-  }).join("")}</ul>` : `<p class="muted">Nenhum alerta. 👍</p>`;
+  }).join("")}</ul>` : `<p class="muted">Nenhum alerta.</p>`;
 }
 
 function renderRules() {
@@ -86,20 +87,20 @@ function renderChannels() {
   const ch = conf.channels;
   const secure = window.isSecureContext && "Notification" in window;
   $("[data-ch-body]", root).innerHTML = `
-    <p class="check" style="margin:0 0 8px">✔ Aqui no painel (sempre)</p>
+    <p class="check" style="margin:0 0 8px">${ic("check")} Aqui no painel (sempre)</p>
     <label class="check"><input type="checkbox" data-ch="pc" ${ch.pc ? "checked" : ""}> Notificação na tela do PC</label>
     <div style="margin-top:12px"><div class="stat-label">Push no celular (ntfy)</div>
       <input class="search" style="width:100%;margin-top:4px" type="url" placeholder="https://ntfy.sh/um-nome-dificil-de-adivinhar" value="${esc(ch.ntfy)}" data-ch="ntfy">
       <p class="note">Instale o app <b>ntfy</b> no celular, assine o mesmo tópico e cole o endereço aqui. No ntfy.sh público, quem souber o nome do tópico lê as mensagens: use um nome longo e aleatório.</p></div>
     <div style="margin-top:4px">${secure
-      ? (Notification.permission === "granted" ? `<p class="check">✔ Notificações deste navegador (com o painel aberto)</p>`
+      ? (Notification.permission === "granted" ? `<p class="check">${ic("check")} Notificações deste navegador (com o painel aberto)</p>`
         : `<button class="btn btn-sm" data-browser>Ativar notificações neste navegador</button>`)
       : `<p class="note">Notificações do navegador só funcionam em HTTPS (ou localhost); pelo IP da rede local use o ntfy.</p>`}</div>
     <button class="btn" style="width:100%;margin-top:10px" data-test>Enviar alerta de teste</button>`;
 }
 
 export default {
-  id: "alerts", title: "Alertas", icon: "🔔", mount,
+  id: "alerts", title: "Alertas", icon: ic("bell"), mount,
   enabled: a => !!a.info?.features?.alerts,
   show: load,
 };

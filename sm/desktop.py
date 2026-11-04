@@ -328,7 +328,8 @@ def shell_icon_png(parsing_name: str, size: int = 64) -> bytes | None:
         if _SHCreate(parsing_name, None, ctypes.byref(IShellItemImageFactory._iid_), ctypes.byref(fac)):
             return None
         try:
-            hbm = fac.GetImage(_SIZE(size, size), 0x4 | 0x1)   # SIIGBF_ICONONLY | SIIGBF_BIGGERSIZEOK
+            hbm = wintypes.HBITMAP(fac.GetImage(_SIZE(size, size), 0x4 | 0x1))   # SIIGBF_ICONONLY | SIIGBF_BIGGERSIZEOK
+            # como objeto: um handle acima de 32 bits passado como int estoura no ctypes
         except OSError:
             return None
         try:

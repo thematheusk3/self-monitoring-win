@@ -1,4 +1,5 @@
 // Aba Rede: quem está conectado, para onde, quanto envia/recebe; conexões encerradas; portas abertas.
+import { ic } from "../icons.js";
 import { $, bytes, duration, esc, rate } from "../ui.js";
 import { openInspect } from "../inspect.js";
 
@@ -34,11 +35,11 @@ function mount(el, a) {
     <div data-body></div>
     <details class="card" style="margin-top:12px"><summary class="card-title" style="cursor:pointer">O que dá para ver (e o que não dá)</summary>
       <div class="note" style="font-size:13px">
-        <p>✔ <b>Quem</b> conecta (programa), <b>para onde</b> (IP, nome reverso do IP, porta/serviço), <b>quanto</b> envia e recebe por conexão TCP e em que ritmo.</p>
-        <p>✘ <b>O conteúdo</b>: quase tudo hoje é criptografado (HTTPS/TLS). Dá para saber que o Discord falou com um servidor da Cloudflare e mandou 30 KB, mas não o que estava dentro.
+        <p>${ic("check")} <b>Quem</b> conecta (programa), <b>para onde</b> (IP, nome reverso do IP, porta/serviço), <b>quanto</b> envia e recebe por conexão TCP e em que ritmo.</p>
+        <p>${ic("x")} <b>O conteúdo</b>: quase tudo hoje é criptografado (HTTPS/TLS). Dá para saber que o Discord falou com um servidor da Cloudflare e mandou 30 KB, mas não o que estava dentro.
           Para ver pacotes, use o Wireshark. Para ver dentro do HTTPS do seu próprio navegador, só com um proxy como o mitmproxy ou o Fiddler, que instala um certificado próprio no sistema. É invasivo e serve mais para depurar.</p>
-        <p>✘ <b>Bytes em UDP</b>: os navegadores usam muito HTTP/3 (QUIC), que roda em UDP. Essas conexões aparecem, mas sem contagem de bytes.</p>
-        <p>⚠ <b>Bytes por conexão TCP</b> exigem o painel rodando como administrador e contam a partir de quando o painel viu a conexão.
+        <p>${ic("x")} <b>Bytes em UDP</b>: os navegadores usam muito HTTP/3 (QUIC), que roda em UDP. Essas conexões aparecem, mas sem contagem de bytes.</p>
+        <p>${ic("warning")} <b>Bytes por conexão TCP</b> exigem o painel rodando como administrador e contam a partir de quando o painel viu a conexão.
           O nome do site vem do DNS reverso, que nem sempre existe (CDNs costumam mostrar o nome do provedor, ex.: cloudflare, googleusercontent).</p>
       </div></details>`;
   $("[data-views]", el).addEventListener("click", e => {
@@ -181,7 +182,7 @@ function openConn(c) {
 }
 
 export default {
-  id: "net", title: "Rede", icon: "⇅", mount, route,
+  id: "net", title: "Rede", icon: ic("arrows-down-up"), mount, route,
   enabled: a => !!a.info?.features?.netmon,
   show: start, hide: stop,
 };
