@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.2-win
+- **`atualizar.cmd`**: dois cliques baixam a versão nova do GitHub e reinstalam o painel. Antes de instalar, mostra a versão
+  instalada, a do GitHub e os commits novos. Com `-Verificar` só mostra o que há de novo; com `-Forcar` reinstala mesmo sem
+  novidade. Se houver arquivos alterados na pasta, ele para sem mudar nada.
+- A aba Atualização agora indica o `atualizar.cmd`.
+
 ## 0.9.1-win
 - **Apps que não são jogos**: nova lista na aba Mural. Marque um programa que apareceu como jogo e ele sai do modo Jogo, do
   aviso de jogo aberto, da leitura de FPS e do alerta de FPS baixo. Vale também para apps da Steam, e dá para desfazer.

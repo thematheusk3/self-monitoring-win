@@ -24,8 +24,8 @@ MAX_BYTES = 1_000_000
 TIMEOUT = 8
 
 # o que muda entre as versões Windows e Linux; o frontend só exibe
-UPDATE_STEPS = ["cd C:\\win-self-monitoring", "git pull", ".\\install.cmd"]
-UPDATE_NOTE = "No PowerShell, como administrador. Sua configuração, senha e históricos são mantidos."
+UPDATE_STEPS = ["C:\\win-self-monitoring\\atualizar.cmd"]
+UPDATE_NOTE = "Dois cliques no arquivo, no PC. O Windows pede permissão de administrador. Sua configuração, senha e históricos são mantidos."
 
 
 def parse_version(v: str | None) -> tuple[int, ...] | None:

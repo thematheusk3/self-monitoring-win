@@ -9,6 +9,20 @@ novos, atualiza as dependências e inicia o painel outra vez.
 novo), os históricos, os alertas, o registro de ações e as capturas (`data\`). **O que é substituído:** o código do
 painel (`sm\`, `web\`, `server.py`) e o Python próprio dele.
 
+## Jeito rápido
+
+Na pasta do projeto, dê dois cliques em **`atualizar.cmd`**. Ele mostra a versão instalada, a do GitHub e o que mudou, baixa a
+versão nova e reinstala. O Windows pede permissão de administrador: aceite. Pelo PowerShell:
+
+```powershell
+C:\win-self-monitoring\atualizar.cmd              # atualiza, se houver novidade
+C:\win-self-monitoring\atualizar.cmd -Verificar   # só mostra o que há de novo
+C:\win-self-monitoring\atualizar.cmd -Forcar      # reinstala mesmo sem novidade
+```
+
+Ele não descarta nada: se a pasta tiver arquivos alterados ou estiver numa versão antiga, para e explica o que fazer.
+Precisa de uma pasta criada com `git clone`. Para instalar sem git ou entender o processo, siga os passos abaixo.
+
 ## 1. Ver qual versão está rodando
 
 No painel: aba **Sistema**, cartão **Monitor**, linha **Versão** (ex.: `0.7.0-win`), ou aba **Atualização**, que também avisa quando há versão nova no GitHub. A lista do que mudou em cada
@@ -107,6 +121,10 @@ Para decidir vendo as duas, compare no GitHub:
 <https://github.com/thematheusk3/self-monitoring-win/compare/ui-classica-0.5.3...main>
 
 ## Resumo
+
+Dois cliques em `C:\win-self-monitoring\atualizar.cmd`.
+
+À mão:
 
 ```powershell
 cd C:\win-self-monitoring

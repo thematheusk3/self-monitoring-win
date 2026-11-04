@@ -85,7 +85,8 @@ numa pasta que um programa comum consiga alterar (senão qualquer programa poder
 instalação e **nunca sobrescrito**). Depois de editar, rode o instalador de novo ou reinicie o PC.
 
 **Atualizar**: `git pull` (ou baixe o ZIP) e rode `.\install.cmd` de novo. Configuração e dados (`data\`) são
-preservados. Passo a passo, como conferir a versão, problemas comuns e como voltar à versão anterior: [ATUALIZAR.md](ATUALIZAR.md).
+preservados. O `atualizar.cmd` faz tudo com dois cliques: baixa a versão nova e reinstala. Passo a passo, como conferir a
+versão, problemas comuns e como voltar à versão anterior: [ATUALIZAR.md](ATUALIZAR.md).
 
 **Desinstalar**: `.\install.cmd -Uninstall` (mantém config e dados) ou `-Uninstall -Purge` (apaga tudo).
 

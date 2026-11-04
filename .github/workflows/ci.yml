@@ -35,7 +35,7 @@ jobs:
         shell: powershell
         run: |
           $bad = 0
-          foreach ($f in @("install.ps1") + (Get-ChildItem tools -Filter *.ps1 | ForEach-Object FullName)) {
+          foreach ($f in @("install.ps1", "atualizar.ps1") + (Get-ChildItem tools -Filter *.ps1 | ForEach-Object FullName)) {
             $errs = $null; $tok = $null
             [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $f), [ref]$tok, [ref]$errs) | Out-Null
             if ($errs) { $errs | ForEach-Object { Write-Host "${f}: $($_.Message)" }; $bad++ }
