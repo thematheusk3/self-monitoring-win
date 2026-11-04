@@ -11,7 +11,7 @@ painel (`sm\`, `web\`, `server.py`) e o Python próprio dele.
 
 ## 1. Ver qual versão está rodando
 
-No painel: aba **Sistema**, cartão **Monitor**, linha **Versão** (ex.: `0.5.3-win`). A lista do que mudou em cada
+No painel: aba **Sistema**, cartão **Monitor**, linha **Versão** (ex.: `0.6.0-win`). A lista do que mudou em cada
 versão está no [CHANGELOG.md](CHANGELOG.md).
 
 ## 2. Baixar a versão nova
@@ -79,6 +79,32 @@ Para voltar a acompanhar as atualizações depois: `git checkout main`, `git pul
 
 Sem git: baixe o ZIP de um commit antigo no GitHub (**Commits** > escolha um > **Browse files** > **Code** >
 **Download ZIP**) e instale por cima do mesmo jeito.
+
+### Voltar para a interface antiga
+
+A interface anterior à repaginada (0.6.0-win) está guardada na marca `ui-classica-0.5.3`. Este comando troca só a pasta
+`web\` e mantém o restante do painel atualizado (as correções do servidor continuam valendo):
+
+```powershell
+cd C:\win-self-monitoring
+git fetch --tags
+git restore --source=ui-classica-0.5.3 -- web
+.\install.cmd
+```
+
+Para voltar à interface nova:
+
+```powershell
+cd C:\win-self-monitoring
+git restore -- web
+.\install.cmd
+```
+
+Depois de um `git restore --source`, o `git status` mostra a pasta `web\` como alterada. Desfaça com `git restore -- web`
+antes de um `git pull`. Recursos de tela criados depois da 0.6.0-win não existem na interface antiga.
+
+Para decidir vendo as duas, compare no GitHub:
+<https://github.com/thematheusk3/self-monitoring-win/compare/ui-classica-0.5.3...main>
 
 ## Resumo
 

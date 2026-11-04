@@ -1,3 +1,4 @@
+import { ic } from "../icons.js";
 import { $, duration, esc, toast } from "../ui.js";
 
 let app, root;
@@ -33,8 +34,8 @@ function mount(el, a) {
     ${app.info.features.power ? `<article class="card" data-power>
       <div class="card-head"><div class="card-title">Energia</div></div>
       <div class="power-btns">
-        <button class="btn" data-act="reboot">↻ Reiniciar</button>
-        <button class="btn btn-danger" data-act="poweroff">⏻ Desligar</button>
+        <button class="btn" data-act="reboot">${ic("arrow-clockwise")} Reiniciar</button>
+        <button class="btn btn-danger" data-act="poweroff">${ic("power")} Desligar</button>
       </div>
       <label class="check" style="margin-top:12px"><input type="checkbox" data-force checked> Forçar finalização</label>
       <p class="note" style="margin-top:6px">Forçar fecha os programas sem esperar, inclusive os que bloqueiam o desligamento ("deseja salvar?",
@@ -99,11 +100,11 @@ async function refreshSession() {
   $("[data-sess-body]", card).innerHTML = (s ? `
       <dl class="kv" style="margin-bottom:12px"><dt>Usuário</dt><dd>${esc(st.user)}</dd><dt>Sessão</dt><dd>${esc(s.type === "rdp" ? "Área de Trabalho Remota" : "Console")}${s.since ? ` · desde ${new Date(s.since * 1000).toLocaleString("pt-BR")}` : ""}</dd></dl>
       <div class="power-btns">
-        <button class="btn" data-sess="lock" ${s.locked ? "disabled" : ""}>🔒 Bloquear</button>
+        <button class="btn" data-sess="lock" ${s.locked ? "disabled" : ""}>${ic("lock")} Bloquear</button>
       </div>`
     : `<p class="confirm-text" style="margin-top:0">O painel não está rodando na sessão do usuário.</p>`) +
     `<p class="note">O Windows não permite desbloquear a tela remotamente: a tela de bloqueio só aceita a senha, o PIN ou o Windows Hello no próprio PC.
-      ${st.autologin_me ? `<br><b>⚠ O login automático do Windows está ligado: qualquer um que ligar o PC entra na sua conta.</b>` : ""}</p>`;
+      ${st.autologin_me ? `<br><b>${ic("warning")} O login automático do Windows está ligado: qualquer um que ligar o PC entra na sua conta.</b>` : ""}</p>`;
 }
 
 export function openUnlock(a, onDone) {
@@ -252,7 +253,7 @@ function setupPower(el) {
     if (st.poweroff !== "yes" && st.poweroff !== "unknown") {
       const w = $("[data-power-warn]", card);
       w.hidden = false;
-      w.innerHTML = `⚠ O painel não tem permissão para desligar o PC.`;
+      w.innerHTML = `${ic("warning")} O painel não tem permissão para desligar o PC.`;
     }
   }).catch(() => {});
   card.addEventListener("click", e => {
@@ -343,7 +344,7 @@ function renderUpdates(st) {
   const by = {};
   for (const i of st.items) (by[i.source] ||= []).push(i);
   const sens = st.items.filter(i => i.sensitive);
-  body.innerHTML = `<p style="margin:0 0 8px">${st.count ? `<b>${st.count}</b> atualizações pendentes` : "Tudo atualizado ✔"}
+  body.innerHTML = `<p style="margin:0 0 8px">${st.count ? `<b>${st.count}</b> atualizações pendentes` : "Tudo atualizado"}
       · verificado ${new Date(st.checked * 1000).toLocaleString("pt-BR")}${st.running ? " · verificando…" : ""}</p>
     ${sens.length ? `<p class="fan-alert warning" style="margin:0 0 8px">Inclui atualizações do Windows ou de drivers (${esc(sens.map(i => i.name).join("; "))}).
       Atualize <b>sentado na frente do PC</b>${st.reboot ? "; algumas pedem reinício" : ""}.</p>` : ""}
@@ -413,7 +414,7 @@ function update(snap) {
 }
 
 export default {
-  id: "system", title: "Sistema", icon: "ⓘ", mount,
+  id: "system", title: "Sistema", icon: ic("cpu"), mount,
   show: () => {
     if (app.snapshot) update(app.snapshot);
     refreshWho(); refreshAudit(); whoTimer = setInterval(() => { refreshWho(); if (!auditItems.length || auditItems.length <= 50) refreshAudit(); }, 10000);
