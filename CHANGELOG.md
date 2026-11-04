@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.1-win
+- **Apps que não são jogos**: nova lista na aba Mural. Marque um programa que apareceu como jogo e ele sai do modo Jogo, do
+  aviso de jogo aberto, da leitura de FPS e do alerta de FPS baixo. Vale também para apps da Steam, e dá para desfazer.
+- Correção: terminais, navegadores e outros programas que desenham com a GPU apareciam como jogo. O Tabby agora é ignorado de
+  fábrica, e navegadores, Discord, VS Code e os demais da lista interna deixam de contar mesmo com a janela em foco.
+
 ## 0.9.0-win
 - **Cores vivas no Mural**: a paleta agora vem da arte do jogo ou da capa da música e muda com transição suave. O texto
   continua legível, porque a paleta garante o contraste.

@@ -16,7 +16,7 @@ const GAME_OPTS = [["fps", "FPS"], ["low1", "1% low"], ["frametime", "Frametime"
 const ART_KINDS = [["hero", "Fundo da biblioteca"], ["cover", "Capa vertical"], ["header", "Banner da loja"]];
 const MAX_SIDE = 1920, MAX_DATA = 1_150_000;      // cabe no limite de 1 MB do servidor depois de decodificado
 
-let app, root, conf = null, games = null, q = "", searchTimer = null;
+let app, root, conf = null, games = null, gameState = null, q = "", searchTimer = null;
 
 const artUrl = (g, kind) => `/api/mural/art/${encodeURIComponent(g.key)}${kind ? `?kind=${kind}` : `?v=${g.v}`}`;
 
@@ -46,6 +46,11 @@ function mount(el, a) {
       <div data-fps-note></div>
     </article>
     <article class="card span-all">
+      <div class="card-head"><div class="card-title">Apps que não são jogos</div></div>
+      <p class="note">Se um programa aparecer como jogo, marque aqui. Ele sai do modo Jogo e da leitura de FPS.</p>
+      <div data-not-games></div>
+    </article>
+    <article class="card span-all">
       <div class="card-head"><div><div class="card-title">Capas dos jogos</div>
         <div class="card-sub">A arte que fica de fundo no modo Jogo. Vem da Steam, e você pode trocar.</div></div></div>
       <div class="toolbar"><input class="search" type="search" placeholder="Buscar jogo…" aria-label="Buscar jogo" data-q></div>
@@ -69,7 +74,8 @@ function mount(el, a) {
 
 async function load() {
   try {
-    [conf, games] = await Promise.all([app.api("/api/mural"), app.api("/api/mural/games").then(r => r.games)]);
+    [conf, games, gameState] = await Promise.all([app.api("/api/mural"), app.api("/api/mural/games").then(r => r.games),
+      app.api("/api/game").catch(() => null)]);
     render();
   } catch (e) { toast(e.message, true); }
 }
@@ -82,6 +88,7 @@ function render() {
   $("[data-opts]", root).innerHTML = GAME_OPTS.map(([k, l]) =>
     `<label class="check"><input type="checkbox" data-opt="${k}" ${conf.game[k] ? "checked" : ""}> ${l}</label>`).join("");
   renderFps();
+  renderNotGames();
   renderGames();
 }
 
@@ -90,6 +97,18 @@ function renderFps() {
   $("[data-fps-note]", root).innerHTML = g && !g.enabled
     ? `<p class="note">FPS, 1% low e frametime dependem da leitura de FPS, que está desligada.</p>
        <button class="btn btn-sm" data-fps-on>Ligar a leitura de FPS</button>` : "";
+}
+
+function renderNotGames() {
+  const row = (g, label, on) => `<li class="not-game"><span>${esc(g.name)}</span>
+    <button class="btn btn-sm" data-not-game="${esc(g.key)}" data-ignored="${on}" data-name="${esc(g.name)}">${label}</button></li>`;
+  const recent = gameState?.recent_games ?? [], marked = gameState?.not_games ?? [];
+  $("[data-not-games]", root).innerHTML = `
+    <p class="note">Detectados recentemente</p>
+    ${recent.length ? `<ul class="not-game-list">${recent.map(g => row(g, "Não é um jogo", true)).join("")}</ul>`
+      : `<p class="muted">Nada detectado desde que o painel iniciou.</p>`}
+    ${marked.length ? `<p class="note">Marcados como não sendo jogos</p>
+      <ul class="not-game-list">${marked.map(g => row(g, "Voltar a considerar", false)).join("")}</ul>` : ""}`;
 }
 
 function renderCity() {
@@ -154,6 +173,18 @@ async function onClick(e) {
   if (e.target.closest("[data-fps-on]")) {
     try { await app.api("/api/game", { method: "POST", body: { fps_enabled: true } }); toast("Leitura de FPS ligada."); $("[data-fps-note]", root).innerHTML = ""; }
     catch (err) { toast(err.message, true); }
+    return;
+  }
+  const ng = e.target.closest("[data-not-game]");
+  if (ng) {
+    const { notGame: key, name, ignored } = ng.dataset, on = ignored === "true";
+    try {
+      gameState = await app.api("/api/game/not-game", { method: "POST", body: { key, name, ignored: on } });
+      toast(on ? `${name} não conta mais como jogo.` : `${name} volta a contar como jogo.`);
+      games = (await app.api("/api/mural/games")).games;
+      renderNotGames();
+      renderGames();
+    } catch (err) { toast(err.message, true); }
     return;
   }
   const g = e.target.closest("[data-game]");

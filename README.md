@@ -116,6 +116,9 @@ Instale com `.\install.cmd -PresentMon` (ou `winget install Intel.PresentMon.Con
 foco (se estiver desenhando), senão o jogo da Steam aberto, senão quem mais desenha quadros. Mostra FPS, 1% low
 (aprox., últimos 60 s) e frametime. Desligado, o PresentMon é encerrado e nada é medido.
 
+O PresentMon vê qualquer programa que desenhe com a GPU, não só jogos. Se um app aparecer como jogo, marque-o em
+**Mural > Apps que não são jogos**. Navegadores, Discord, VS Code, Tabby e parecidos já são ignorados de fábrica.
+
 Por segurança o painel só usa um PresentMon em pasta de administrador (o do winget `--scope machine` ou um
 `PresentMon*.exe` copiado para `C:\Program Files\SelfMonitoring\tools`).
 
@@ -420,6 +423,7 @@ saídas `DISPLAY1`, `DISPLAY2`...; `GET /api/processes/<pid>/inspect` traz `sign
 | POST | `/api/session/lock` | bloqueia a tela do PC |
 | GET | `/api/apps` | aplicativos do menu Iniciar; `/api/apps/<id>/icon`; `POST /api/apps/<id>/launch` |
 | GET/POST | `/api/game` | jogo atual e FPS; `{"fps_enabled": true}` liga o PresentMon |
+| POST | `/api/game/not-game` | `{"key": "exe:tabby.exe", "name": "Tabby", "ignored": true}`; `"ignored": false` desfaz |
 | POST | `/api/media` | `{"player": "Spotify.exe", "op": "play_pause"\|"next"\|"previous"\|"seek", "offset": 10}` |
 | GET/POST | `/api/audio` | estado; `{"op": "set_default"\|"volume"\|"mute"\|"move", "kind": "sink"\|"source"\|"app"\|"rec", ...}` |
 | GET | `/api/display` | monitores e modos; `POST /api/display/mode` `{"output":"DISPLAY1","mode":"1920x1080@144"}` ou `{"op":"confirm"\|"revert"}` |

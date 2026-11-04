@@ -141,19 +141,68 @@ class GameTest(unittest.TestCase):
         self.g.names[pid] = name
 
     def test_picks_foreground_then_busiest(self):
-        self.frames(10, "chrome.exe", 60)
+        self.frames(10, "Emulador.exe", 60)
         self.frames(20, "Game.exe", 140)
         st = self.g.status()
         self.assertEqual(st["game"]["pid"], 20)
         self.assertAlmostEqual(st["fps"], 140, delta=1)
-        self.ctx.data = {"focus": {"window": {"pid": 10, "desktop": "Google Chrome"}}}
-        self.assertEqual(self.g.status()["game"]["name"], "Google Chrome")
+        self.ctx.data = {"focus": {"window": {"pid": 10, "desktop": "Emulador"}}}
+        self.assertEqual(self.g.status()["game"]["name"], "Emulador")
 
     def test_ignores_non_games_without_focus(self):
         self.frames(10, "dwm.exe", 144)
         st = self.g.status()
         self.assertFalse(st["live"])
         self.assertIsNone(st["game"])
+
+    def test_non_game_in_focus_is_not_a_game(self):
+        self.frames(10, "Tabby.exe", 60)
+        self.ctx.data = {"focus": {"window": {"pid": 10, "desktop": "Tabby"}}}
+        st = self.g.status()
+        self.assertFalse(st["live"])
+        self.assertIsNone(st["game"])
+        self.frames(20, "Game.exe", 140)        # o jogo atrás do app em foco continua valendo
+        self.assertEqual(self.g.status()["game"]["pid"], 20)
+
+    def test_marks_app_as_not_game_and_keeps_it(self):
+        self.frames(10, "Notas Rapidas.exe", 60)
+        self.ctx.data = {"focus": {"window": {"pid": 10, "desktop": "Notas"}}}
+        st = self.g.status()
+        key = st["game"]["key"]
+        self.assertEqual(st["recent_games"], [{"key": key, "name": "Notas"}])
+        st = self.g.set_not_game(key, "Notas", True)
+        self.assertIsNone(st["game"])
+        self.assertIsNone(st["fps"])
+        self.assertEqual(st["not_games"], [{"key": key, "name": "Notas"}])
+        self.assertEqual(st["recent_games"], [])
+        self.g.set_enabled(False)               # gravar o estado do FPS não apaga a lista
+        again = game.GameMonitor(self.ctx)
+        self.assertEqual(again.not_games, {key: "Notas"})
+        self.g.enabled = True
+        self.frames(10, "Notas Rapidas.exe", 60)
+        self.assertEqual(self.g.set_not_game(key, None, False)["game"]["key"], key)
+
+    def test_steam_app_can_be_marked_as_not_game(self):
+        game.running_steam_appid = lambda: "431960"
+        self.g._find_proc = lambda appid: (10, 1.0)
+        self.frames(10, "wallpaper64.exe", 30)
+        self.assertEqual(self.g.status()["game"]["key"], "steam:431960")
+        st = self.g.set_not_game("steam:431960", "Wallpaper", True)
+        self.assertIsNone(st["game"])
+        self.assertFalse(st["live"])
+
+    def test_rejects_invalid_not_game_key(self):
+        for key in (None, "", "exe:../x", "qualquer"):
+            with self.assertRaises(ValueError):
+                self.g.set_not_game(key, "x", True)
+
+    def test_recent_games_are_limited(self):
+        for i in range(game.MAX_RECENT + 3):
+            self.g.frames.clear()
+            self.frames(i + 1, f"App{i}.exe", 60)
+            st = self.g.status()
+        self.assertEqual(len(st["recent_games"]), game.MAX_RECENT)
+        self.assertEqual(st["recent_games"][0]["key"], "exe:app10.exe")
 
     def test_requires_presentmon(self):
         self.g.exe = None

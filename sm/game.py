@@ -39,7 +39,10 @@ FT_COLUMNS = ("FrameTime", "MsBetweenPresents", "msBetweenPresents")
 # processos que desenham quadros mas não são jogos
 NOT_GAMES = {"dwm.exe", "explorer.exe", "chrome.exe", "msedge.exe", "firefox.exe", "discord.exe", "steamwebhelper.exe",
              "searchhost.exe", "startmenuexperiencehost.exe", "shellexperiencehost.exe", "textinputhost.exe",
-             "applicationframehost.exe", "code.exe", "spotify.exe", "obs64.exe", "nvidia overlay.exe"}
+             "applicationframehost.exe", "code.exe", "spotify.exe", "obs64.exe", "nvidia overlay.exe", "tabby.exe"}
+MAX_NOT_GAMES = 200
+MAX_RECENT = 8          # jogos vistos há pouco, para escolher o que não é jogo
+RX_KEY = re.compile(r"(steam:\d{1,12}|exe:[a-z0-9._-]{1,80})")
 
 
 def find_presentmon(configured: str = "") -> Path | None:
@@ -69,7 +72,11 @@ class GameMonitor:
         self.ctx = ctx
         self.lock = threading.Lock()
         self.exe = find_presentmon(ctx.config.presentmon)
-        self.enabled = self._load()
+        state = self._load()
+        self.enabled = bool(state.get("fps_enabled"))
+        saved = state.get("not_games")
+        self.not_games: dict[str, str] = {str(k): str(v) for k, v in saved.items()} if isinstance(saved, dict) else {}
+        self.recent: dict[str, str] = {}
         self.proc: subprocess.Popen | None = None
         self.frames: dict[int, deque] = {}     # pid -> (t, frametime ms)
         self.names: dict[int, str] = {}
@@ -79,11 +86,30 @@ class GameMonitor:
             self._start()
 
     # ---------- ligar/desligar ----------
-    def _load(self) -> bool:
+    def _load(self) -> dict:
         try:
-            return bool(json.loads(STATE_FILE.read_text()).get("fps_enabled"))
+            state = json.loads(STATE_FILE.read_text())
         except (OSError, ValueError):
-            return False
+            return {}
+        return state if isinstance(state, dict) else {}
+
+    def _save(self) -> None:
+        STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        STATE_FILE.write_text(json.dumps({"fps_enabled": self.enabled, "not_games": self.not_games}))
+
+    def set_not_game(self, key: str, name: str | None, ignored: bool) -> dict:
+        """Marca (ou desmarca) um app como "não é jogo": ele some do jogo atual e do FPS."""
+        if not valid_key(key):
+            raise ValueError("Jogo inválido.")
+        with self.lock:
+            if not ignored:
+                self.not_games.pop(key, None)
+            elif key in self.not_games or len(self.not_games) < MAX_NOT_GAMES:
+                self.not_games[key] = str(name or key.split(":", 1)[1])[:80]
+            else:
+                raise ValueError("A lista de apps que não são jogos está cheia.")
+            self._save()
+        return self.status()
 
     def set_enabled(self, on: bool) -> dict:
         if on and not self.exe:
@@ -93,8 +119,7 @@ class GameMonitor:
                                "winget install Intel.PresentMon.Console --scope machine  (ou rode o instalador "
                                "do self-monitoring com -PresentMon) e tente de novo.")
         self.enabled = on
-        STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
-        STATE_FILE.write_text(json.dumps({"fps_enabled": on}))
+        self._save()
         if on:
             self._start()
         else:
@@ -195,9 +220,14 @@ class GameMonitor:
                     del self.frames[pid]
                     self.names.pop(pid, None)
 
-    def _target(self, game: dict | None) -> int | None:
+    def _is_game(self, name: str | None) -> bool:
+        name = (name or "").lower()
+        return name not in NOT_GAMES and game_key({"exe": name}) not in self.not_games
+
+    def _target(self, game: dict | None, skip: int | None = None) -> int | None:
         now = time.time()
-        live = {pid: dq for pid, dq in self.frames.items() if dq and dq[-1][0] >= now - ACTIVE_WINDOW}
+        live = {pid: dq for pid, dq in self.frames.items()
+                if dq and dq[-1][0] >= now - ACTIVE_WINDOW and pid != skip and self._is_game(self.names.get(pid))}
         if not live:
             return None
         fg = ((self.ctx.data.get("focus") or {}).get("window") or {}).get("pid")
@@ -205,14 +235,16 @@ class GameMonitor:
             return fg
         if game and game.get("pid") in live:
             return game["pid"]
-        cands = [pid for pid in live if self.names.get(pid, "").lower() not in NOT_GAMES]
-        return max(cands, key=lambda pid: sum(1 for t, _ in live[pid] if t >= now - 1), default=None)
+        return max(live, key=lambda pid: sum(1 for t, _ in live[pid] if t >= now - 1))
 
     def status(self) -> dict:
         game = self.running_game()
         now = time.time()
         with self.lock:
-            pid = self._target(game) if self.enabled else None
+            skip = None
+            if game and game_key(game) in self.not_games:      # app da Steam que não é jogo
+                skip, game = game.get("pid"), None
+            pid = self._target(game, skip) if self.enabled else None
             dq = list(self.frames.get(pid, ())) if pid else []
             pname = self.names.get(pid) if pid else None
         recent = [ft for t, ft in dq if t >= now - 1.0]
@@ -228,8 +260,15 @@ class GameMonitor:
             name = w.get("desktop") if w.get("pid") == pid else None
             game = {"appid": None, "name": name or (pname or "?").removesuffix(".exe"), "since": None,
                     "pid": pid, "source": "presentmon", "exe": pname}
-        if game:
-            game = {**game, "key": game_key(game)}
+        with self.lock:
+            if game:
+                game = {**game, "key": game_key(game)}
+                self.recent.pop(game["key"], None)
+                self.recent[game["key"]] = game["name"]
+                while len(self.recent) > MAX_RECENT:
+                    self.recent.pop(next(iter(self.recent)))
+            not_games = [{"key": k, "name": n} for k, n in self.not_games.items()]
+            seen = [{"key": k, "name": n} for k, n in reversed(self.recent.items()) if k not in self.not_games]
         return {
             "enabled": self.enabled, "config_ok": (self.exe is not None) if self.enabled else None,
             "available": self.exe is not None, "conf_path": str(self.exe) if self.exe else None,
@@ -238,8 +277,12 @@ class GameMonitor:
             "fps": fps, "low1": low if live else None,
             "frametime": round(sum(recent) / len(recent), 2) if recent else None,
             "cpu_load": None, "gpu_load": None,
-            "log_file": pname,
+            "log_file": pname, "not_games": not_games, "recent_games": seen,
         }
+
+
+def valid_key(key: str) -> bool:
+    return bool(RX_KEY.fullmatch(key or ""))
 
 
 def game_key(game: dict) -> str:

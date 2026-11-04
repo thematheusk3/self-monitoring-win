@@ -12,7 +12,6 @@ import base64
 import hashlib
 import json
 import logging
-import re
 import threading
 import time
 import urllib.error
@@ -23,7 +22,7 @@ from pathlib import Path
 from .auth import _write_private
 from .config import ROOT
 from .desktop import STEAM_ROOTS
-from .game import steam_games
+from .game import steam_games, valid_key
 
 log = logging.getLogger(__name__)
 CONF_FILE = ROOT / "data" / "mural.json"
@@ -42,7 +41,6 @@ STEAM_ART = {"hero": ("library_hero.jpg",), "cover": ("library_600x900.jpg", "li
              "header": ("header.jpg", "library_header.jpg"), "logo": ("logo.png",)}
 GAME_DEFAULTS = {"fps": True, "low1": True, "frametime": False, "cpu": True, "gpu": True, "temps": True, "vram": True,
                  "ram": False, "session": True, "music": True}
-RX_KEY = re.compile(r"(steam:\d{1,12}|exe:[a-z0-9._-]{1,80})")
 
 # código WMO -> (descrição, ícone de dia, ícone de noite)
 WMO = {
@@ -91,10 +89,6 @@ def parse_weather(raw: dict) -> dict:
 
 def _custom_path(key: str) -> Path:
     return ART_DIR / f"custom-{hashlib.sha1(key.encode()).hexdigest()[:20]}.jpg"
-
-
-def valid_key(key: str) -> bool:
-    return bool(RX_KEY.fullmatch(key or ""))
 
 
 class Mural:

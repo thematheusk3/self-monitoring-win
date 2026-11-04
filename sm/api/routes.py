@@ -331,6 +331,17 @@ def game_set(req):
         return Response({"error": str(e)}, 409)
 
 
+@route("POST", "/api/game/not-game")
+def game_not_game(req):
+    if not req.ctx.game:
+        return Response({"error": "indisponível"}, 404)
+    b = req.json() or {}
+    try:
+        return req.ctx.game.set_not_game(b.get("key"), b.get("name"), b.get("ignored", True) is not False)
+    except ValueError as e:
+        return Response({"error": str(e)}, 400)
+
+
 # ---------- áudio ----------
 def _control_off(req):
     return None if req.ctx.config.allow_control else Response(
