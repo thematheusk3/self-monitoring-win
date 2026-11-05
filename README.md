@@ -50,7 +50,8 @@ O que existe só em uma versão, o que dá para levar para a outra e o que é im
 | FPS | PresentMon (mede qualquer jogo DirectX/Vulkan/OpenGL, sem configurar o jogo) em vez do MangoHud. |
 | "De qual pacote veio" | Assinatura digital (Authenticode) + informações de versão do executável. |
 | Atualizações | Windows Update (inclui drivers) + winget. |
-| Mural | Tela cheia com relógio, clima, jogo (arte, FPS, CPU, GPU) e música. |
+| Mural | Tela cheia com relógio, clima, jogo (arte, FPS, CPU, GPU) e música, com seis fundos para o Início. |
+| Aparência | Seis cores de placa, cada uma no tema escuro e no claro, salvas em cada aparelho. |
 | Webhook | Outros programas enviam notificações para o painel. |
 | Atualização do painel | Versão instalada × GitHub, changelog, link do repositório e aviso "Nova" na navegação. |
 
@@ -276,6 +277,8 @@ mouse ou toque na tela para trocar o modo, entrar em tela cheia ou sair (também
 
 - **Clima:** escolha a cidade na aba. A previsão vem da [Open-Meteo](https://open-meteo.com/), sem cadastro; só as coordenadas
   da cidade saem do PC, e nada é consultado antes da escolha.
+- **Fundos do Início:** Céu da cidade, Serra, Placa de circuito, Aurora, Capas dos jogos (arte da Steam, trocada a cada 2 min)
+  e Sua imagem. Escolha em Mural > Fundo do Início ou pelo botão de imagem na barra do Mural.
 - **Capas:** cada jogo usa a arte do cache da Steam (ou da CDN dela, se faltar) ou uma imagem sua, reduzida no navegador antes do envio.
 - **FPS** depende da leitura com o PresentMon (ver [FPS dos jogos](#fps-dos-jogos-presentmon)).
 - **Cores:** vêm da arte do jogo ou da capa da música; no Início, do céu da cidade na hora atual. Se a imagem não permitir a
@@ -423,6 +426,7 @@ saídas `DISPLAY1`, `DISPLAY2`...; `GET /api/processes/<pid>/inspect` traz `sign
 | GET | `/api/session` | sessão do Windows (bloqueada?), login automático |
 | POST | `/api/session/lock` | bloqueia a tela do PC |
 | GET | `/api/apps` | aplicativos do menu Iniciar; `/api/apps/<id>/icon`; `POST /api/apps/<id>/launch` |
+| GET/POST | `/api/mural/background` | imagem de fundo do Início; `POST` com `{"image": "data:image/jpeg;base64,..."}`; `POST /api/mural/background/reset` remove |
 | GET/POST | `/api/game` | jogo atual e FPS; `{"fps_enabled": true}` liga o PresentMon |
 | POST | `/api/game/not-game` | `{"key": "exe:tabby.exe", "name": "Tabby", "ignored": true}`; `"ignored": false` desfaz |
 | POST | `/api/media` | `{"player": "Spotify.exe", "op": "play_pause"\|"next"\|"previous"\|"seek", "offset": 10}` |

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.10.0-win
+- **Cores do painel**: o botão de tema agora abre **Aparência**, com seis cores de placa (verde, azul, vermelha, roxa, preta e
+  amarela), cada uma no tema escuro e no claro. A escolha fica salva em cada aparelho.
+- **Fundos do Início do Mural**: seis opções. **Céu da cidade**, agora desenhado, com sol e lua na posição real, estrelas,
+  nuvens, chuva e neve conforme o clima; **Serra**; **Placa de circuito**, com pulsos de luz nas trilhas e a cor do painel;
+  **Aurora**; **Capas dos jogos**, com a arte da Steam mudando a cada 2 minutos; e **Sua imagem**.
+- Escolha o fundo em Mural > Fundo do Início, com miniaturas, ou troque pelo botão de imagem dentro do próprio Mural.
+- **Barra do Mural redesenhada**: dock de vidro com ícones e um destaque que desliza até o modo escolhido. No celular, só o
+  modo atual mostra o nome.
+
 ## 0.9.2-win
 - **`atualizar.cmd`**: dois cliques baixam a versão nova do GitHub e reinstalam o painel. Antes de instalar, mostra a versão
   instalada, a do GitHub e os commits novos. Com `-Verificar` só mostra o que há de novo; com `-Forcar` reinstala mesmo sem

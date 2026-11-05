@@ -523,6 +523,27 @@ def mural_art_reset(req, key):
     return {"ok": True}
 
 
+@route("GET", "/api/mural/background")
+def mural_background_get(req):
+    data = req.ctx.mural.background()
+    if data is None:
+        return Response({"error": "sem imagem"}, 404)
+    return Response(data, 200, {"Content-Type": "image/jpeg"})
+
+
+@route("POST", "/api/mural/background")
+def mural_background_set(req):
+    try:
+        return req.ctx.mural.set_background((req.json() or {}).get("image") or "")
+    except ValueError as e:
+        return Response({"error": str(e)}, 400)
+
+
+@route("POST", "/api/mural/background/reset")
+def mural_background_reset(req):
+    return req.ctx.mural.reset_background()
+
+
 @route("POST", "/api/webhook/notify")
 def webhook_notify(req):
     """Sem sessão: autorizado pelo token (ver sm/webhook.py)."""

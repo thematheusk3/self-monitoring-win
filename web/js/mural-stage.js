@@ -6,16 +6,20 @@ import { artSrc, controlMedia, livePos, mediaButtons, mmss } from "./media.js";
 import { Spark } from "./spark.js";
 import { EventDeck, fromAlert } from "./mural-events.js";
 import { paletteFrom, skyPalette } from "./mural-palette.js";
+import { AURORA, BACKDROPS, Backdrop } from "./mural-backdrop.js";
+import { currentPalette } from "./theme.js";
 
-const MODES = [["auto", "Automático"], ["home", "Início"], ["game", "Jogo"], ["music", "Música"]];
+const MODES = [["auto", "Automático", "arrow-clockwise"], ["home", "Início", "house"], ["game", "Jogo", "game-controller"], ["music", "Música", "music-note"]];
 const IDLE = 4000;              // ms até esconder os controles
 const CONF_EVERY = 5 * 60000;   // clima e preferências
 const SHIFT_EVERY = 60000;      // desloca o conteúdo para não marcar telas OLED
 const SPLASH_SECONDS = 6;
+const COVER_MINUTES = 2;        // tempo de cada capa no fundo "Capas dos jogos"
 
 let app, el, deck, conf = null, scene = null, off = null, timers = [], idleTimer = null, lastSeq = null, wake = null;
 let fpsSpark = null, lastGame = undefined, lastTrack = undefined, paletteKey = null, bgLayer = 0;
 let onExit = () => {};
+let backdrop = null, covers = null, coverAt = 0, minutes = 0;
 
 const artUrl = (key, kind) => `/api/mural/art/${encodeURIComponent(key)}${kind ? `?kind=${kind}` : ""}`;
 const deg = n => (n == null ? "—" : `${Math.round(n)}°`);
@@ -42,11 +46,54 @@ async function paletteOf(src) {
   if (p && paletteKey === src) applyPalette(p);
 }
 
-function paintSky() {
+function homeView(kind) {
+  if (kind === "aurora") return { palette: AURORA };
+  if (kind === "board") return { palette: currentPalette() };
+  const palette = skyPalette(conf.weather);
+  return { palette, phase: palette.phase, weather: conf.weather };
+}
+
+async function loadCovers() {
+  covers = [];                   // evita pedir duas vezes
+  try {
+    const { games } = await app.api("/api/mural/games");
+    covers = games.filter(g => g.steam).map(g => g.key).sort(() => Math.random() - .5);
+  } catch { /* fica com o céu */ }
+  if (scene === "home") paintHome();
+}
+
+/** Fundo do Início: desenhado ou imagem. Sem capa ou sem imagem disponível, volta ao céu. */
+function paintHome() {
+  let kind = conf.background;
+  if (kind === "games" && covers === null) loadCovers();
+  if ((kind === "games" && !covers?.length) || (kind === "photo" && !conf.background_v)) kind = "sky";
+  const src = kind === "games" ? artUrl(covers[coverAt % covers.length], "hero")
+    : kind === "photo" ? `/api/mural/background?v=${conf.background_v}` : null;
+  el.dataset.backdrop = kind;
+  if (src) {
+    backdrop.hide();
+    setBackground(src);
+    paletteOf(src);
+    return;
+  }
+  setBackground(null);
   paletteKey = null;
-  const p = skyPalette(conf.weather);
-  el.dataset.sky = p.phase;
-  applyPalette(p);
+  const view = homeView(kind);
+  if (view.phase) el.dataset.sky = view.phase;
+  applyPalette(view.palette);
+  backdrop.show(kind, view);
+}
+
+function coverFailed() {
+  if (scene !== "home" || el.dataset.backdrop !== "games") return;
+  covers.splice(coverAt % covers.length, 1);        // jogo sem arte de fundo: sai do rodízio
+  paintHome();
+}
+
+function everyMinute() {
+  if (scene !== "home") return;
+  if (conf.background === "games" && covers?.length && ++minutes % COVER_MINUTES === 0) coverAt++;
+  paintHome();                                       // o céu muda ao longo do dia
 }
 
 /** Troca de arte com fade: a imagem nova carrega na camada escondida e só então aparece. */
@@ -56,7 +103,7 @@ function setBackground(src) {
   if (cur.getAttribute("src") === src) return;
   const next = layers[1 - bgLayer];
   next.onload = () => { next.classList.add("on"); cur.classList.remove("on"); bgLayer = 1 - bgLayer; };
-  next.onerror = () => { cur.classList.remove("on"); };
+  next.onerror = () => { cur.classList.remove("on"); coverFailed(); };
   next.src = src;
 }
 
@@ -143,6 +190,8 @@ function enter(name) {
   scene = name;
   el.dataset.scene = name;
   fpsSpark = null;
+  if (name !== "home") { backdrop.hide(); delete el.dataset.backdrop; }
+  $("[data-bg]", el).hidden = name !== "home";
   $(".mural-scene", el).innerHTML = SCENES[name]();
   clockTick();
   paintConf();
@@ -153,7 +202,16 @@ function paintConf() {
   if (w) w.innerHTML = weatherBlock();
   $$("[data-mini]", el).forEach(n => { n.innerHTML = weatherMini(); });
   $$("[data-mode]", el).forEach(b => b.setAttribute("aria-pressed", b.dataset.mode === conf.mode));
-  if (scene === "home") paintSky();
+  movePill();
+  if (scene === "home") paintHome();
+}
+
+/** O destaque desliza até o modo escolhido: mostra de onde veio e para onde foi. */
+function movePill() {
+  const b = $("[data-mode][aria-pressed='true']", el), pill = $(".mural-dock-pill", el);
+  if (!b || !pill) return;
+  pill.style.width = `${b.offsetWidth}px`;
+  pill.style.translate = `${b.offsetLeft}px 0`;
 }
 
 function paintGame(d) {
@@ -265,7 +323,6 @@ function paint(snap) {
   if (next === "game") paintGame(d);
   else if (next === "music") paintMusic(d, snap.ts);
   else {
-    setBackground(null);
     const e = $("[data-empty]", el);
     if (e) e.textContent = emptyNote(d);
   }
@@ -276,6 +333,7 @@ function paint(snap) {
 // ---------- controles ----------
 function wakeUp() {
   el.classList.add("awake");
+  movePill();
   clearTimeout(idleTimer);
   idleTimer = setTimeout(() => {
     if (!$(".mural-bar", el).contains(document.activeElement)) el.classList.remove("awake");
@@ -287,6 +345,15 @@ async function setMode(mode) {
   paintConf();
   if (app.snapshot) paint(app.snapshot);
   try { conf = await app.api("/api/mural", { method: "POST", body: { mode } }); } catch { /* vale nesta tela até recarregar */ }
+}
+
+async function nextBackground() {
+  const list = BACKDROPS.filter(([id]) => id !== "photo" || conf.background_v);
+  const [id, name] = list[(list.findIndex(([k]) => k === conf.background) + 1) % list.length];
+  conf = { ...conf, background: id };
+  if (scene === "home") paintHome();
+  deck.push({ id: `bg-${id}`, kind: "toast", level: "info", title: name, icon: "image", seconds: 3 });
+  try { conf = await app.api("/api/mural", { method: "POST", body: { background: id } }); } catch { /* vale nesta tela até recarregar */ }
 }
 
 async function refreshConf() {
@@ -313,23 +380,31 @@ function build() {
   el.setAttribute("role", "region");
   el.setAttribute("aria-label", "Mural");
   el.hidden = true;
-  el.innerHTML = `<img class="mural-bg" alt=""><img class="mural-bg" alt=""><div class="mural-scrim"></div>
+  el.innerHTML = `<canvas class="mural-canvas" aria-hidden="true"></canvas><img class="mural-bg" alt=""><img class="mural-bg" alt=""><div class="mural-scrim"></div>
     <div class="mural-scene"></div>
     <div class="mural-toasts" role="status" aria-live="polite"></div>
     <section class="mural-takeover" hidden></section>
     <nav class="mural-bar" aria-label="Controles do Mural">
-      <div class="seg">${MODES.map(([id, label]) => `<button data-mode="${id}" aria-pressed="false">${label}</button>`).join("")}</div>
-      <button class="btn" data-fs>${ic("frame-corners")} Tela cheia</button>
-      <button class="btn" data-exit>${ic("x")} Sair</button>
+      <div class="mural-dock-modes"><span class="mural-dock-pill"></span>
+        ${MODES.map(([id, label, icon]) => `<button data-mode="${id}" aria-pressed="false" aria-label="${label}">${ic(icon)}<span>${label}</span></button>`).join("")}</div>
+      <div class="mural-dock-tools">
+        <button data-bg title="Trocar o fundo" aria-label="Trocar o fundo">${ic("image")}</button>
+        <button data-fs title="Tela cheia" aria-label="Tela cheia">${ic("frame-corners")}</button>
+        <button data-exit title="Sair do Mural" aria-label="Sair do Mural">${ic("x")}</button>
+      </div>
     </nav>`;
   document.body.append(el);
   deck = new EventDeck(el);
+  backdrop = new Backdrop($(".mural-canvas", el));
+  document.fonts?.ready.then(movePill);             // a largura dos botões muda quando a fonte chega
+  new ResizeObserver(movePill).observe($(".mural-dock-modes", el));
   el.addEventListener("pointermove", wakeUp);
   el.addEventListener("pointerdown", wakeUp);
   el.addEventListener("focusin", wakeUp);
   el.addEventListener("click", async e => {
     const mode = e.target.closest("[data-mode]");
     if (mode) return setMode(mode.dataset.mode);
+    if (e.target.closest("[data-bg]")) return nextBackground();
     if (e.target.closest("[data-fs]")) return toggleFullscreen();
     if (e.target.closest("[data-exit]")) return close();
     if (e.target.closest("[data-pick-city]")) return close();
@@ -364,7 +439,7 @@ export async function open(a, { fullscreen = false, exit = () => {} } = {}) {
   timers = [setInterval(clockTick, 1000), setInterval(refreshConf, CONF_EVERY), setInterval(() => {
     const r = () => Math.round(Math.random() * 16 - 8);
     $(".mural-scene", el).style.translate = `${r()}px ${r()}px`;
-    if (scene === "home") paintSky();                  // o céu muda ao longo do dia
+    everyMinute();
   }, SHIFT_EVERY)];
   document.addEventListener("keydown", onKey);
   document.addEventListener("visibilitychange", keepAwake);
@@ -380,6 +455,8 @@ export function close() {
   timers.forEach(clearInterval); timers = [];
   clearTimeout(idleTimer);
   deck.clear();
+  backdrop.hide();
+  covers = null;
   document.removeEventListener("keydown", onKey);
   document.removeEventListener("visibilitychange", keepAwake);
   if (document.fullscreenElement) document.exitFullscreen?.();

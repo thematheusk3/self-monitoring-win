@@ -239,6 +239,8 @@ DESCRIBERS = {
     "alerts_config_set": lambda r, b, p: ("panel", "Alterar as regras/canais de alertas", None),
     "game_not_game": lambda r, b, p: ("game", f"{'Marcar' if b.get('ignored', True) is not False else 'Desmarcar'} {b.get('name') or b.get('key')} como app que não é jogo", None),
     "mural_set": lambda r, b, p: ("panel", "Alterar as preferências do Mural", "mural"),
+    "mural_background_set": lambda r, b, p: ("panel", "Enviar a imagem de fundo do Mural", "mural"),
+    "mural_background_reset": lambda r, b, p: ("panel", "Remover a imagem de fundo do Mural", "mural"),
     "mural_art_set": lambda r, b, p: ("panel", f"Trocar a arte do jogo {p.get('key')} no Mural", None),
     "mural_art_reset": lambda r, b, p: ("panel", f"Voltar à arte padrão do jogo {p.get('key')} no Mural", None),
     "webhook_token": lambda r, b, p: ("panel", "Gerar token do webhook", None),

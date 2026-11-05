@@ -108,6 +108,17 @@ export function skyPhase(now, sunrise, sunset) {
   return t > up && t < down ? "day" : "night";
 }
 
+/** Sol de dia e lua de noite, com t de 0 (nasce) a 1 (se põe) no percurso de cada um. */
+export function celestial(weather, now = new Date()) {
+  const today = weather?.days?.[0], DAY = 86400000;
+  const up = today?.sunrise ? new Date(today.sunrise).getTime() : new Date(now).setHours(6, 0, 0, 0);
+  const down = today?.sunset ? new Date(today.sunset).getTime() : new Date(now).setHours(18, 0, 0, 0);
+  const t = now.getTime();
+  if (t >= up && t <= down) return { body: "sun", t: (t - up) / (down - up) };
+  const since = ((t - down) % DAY + DAY) % DAY;
+  return { body: "moon", t: Math.min(1, since / (DAY - (down - up))) };
+}
+
 /** Céu de agora na cidade: muda com o nascer e o pôr do sol, e fica acinzentado com chuva ou tempo fechado. */
 export function skyPalette(weather, now = new Date()) {
   const today = weather?.days?.[0];

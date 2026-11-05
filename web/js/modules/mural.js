@@ -3,6 +3,9 @@
 import { $, $$, esc, toast } from "../ui.js";
 import { ic } from "../icons.js";
 import { close as closeStage, open as openStage } from "../mural-stage.js";
+import { AURORA, BACKDROPS, thumb } from "../mural-backdrop.js";
+import { skyPalette } from "../mural-palette.js";
+import { currentPalette } from "../theme.js";
 
 const MODE_HELP = {
   auto: "Mostra o jogo se houver um aberto, senão a música que está tocando, senão o Início.",
@@ -39,6 +42,11 @@ function mount(el, a) {
         <label class="check"><input type="checkbox" data-pref="takeover"> Alertas críticos ocupam a tela inteira</label>
         <label class="check"><input type="checkbox" data-pref="context"> Avisar quando um jogo abrir ou a música mudar</label>
       </div>
+    </article>
+    <article class="card span-all">
+      <div class="card-head"><div class="card-title">Fundo do Início</div></div>
+      <div class="bg-grid" data-backgrounds></div>
+      <div class="bg-tools" data-bg-tools></div>
     </article>
     <article class="card span-2">
       <div class="card-head"><div class="card-title">O que mostrar no modo Jogo</div></div>
@@ -87,6 +95,7 @@ function render() {
   $$("[data-pref]", root).forEach(c => { c.checked = conf[c.dataset.pref]; });
   $("[data-opts]", root).innerHTML = GAME_OPTS.map(([k, l]) =>
     `<label class="check"><input type="checkbox" data-opt="${k}" ${conf.game[k] ? "checked" : ""}> ${l}</label>`).join("");
+  renderBackgrounds();
   renderFps();
   renderNotGames();
   renderGames();
@@ -97,6 +106,31 @@ function renderFps() {
   $("[data-fps-note]", root).innerHTML = g && !g.enabled
     ? `<p class="note">FPS, 1% low e frametime dependem da leitura de FPS, que está desligada.</p>
        <button class="btn btn-sm" data-fps-on>Ligar a leitura de FPS</button>` : "";
+}
+
+function renderBackgrounds() {
+  const cover = games?.find(g => g.steam);
+  const art = {
+    games: cover ? `<img src="${artUrl(cover, "hero")}" alt="">` : ic("game-controller"),
+    photo: conf.background_v ? `<img src="/api/mural/background?v=${conf.background_v}" alt="">` : ic("upload-simple"),
+  };
+  $("[data-backgrounds]", root).innerHTML = BACKDROPS.map(([id, label]) => `<button class="bg-tile" data-background="${id}" aria-pressed="${id === conf.background}">
+      ${art[id] ? `<span class="bg-art">${art[id]}</span>` : `<canvas width="320" height="180" data-thumb="${id}"></canvas>`}
+      <span class="cover-name">${label}</span></button>`).join("");
+  const sky = skyPalette(conf.weather);
+  const views = { sky: { palette: sky, phase: sky.phase, weather: conf.weather }, ridge: { palette: sky }, board: { palette: currentPalette() }, aurora: { palette: AURORA } };
+  $$("[data-thumb]", root).forEach(c => thumb(c, c.dataset.thumb, views[c.dataset.thumb]));
+  $("[data-bg-tools]", root).innerHTML = `<label class="btn btn-sm">${ic("upload-simple")} ${conf.background_v ? "Trocar a imagem" : "Enviar uma imagem"}<input type="file" accept="image/*" data-bg-file hidden></label>
+    ${conf.background_v ? `<button class="btn btn-sm" data-bg-remove>Remover a imagem</button>` : ""}
+    <p class="note">No Mural, o botão de imagem no topo também troca o fundo.</p>`;
+}
+
+async function uploadBackground(file) {
+  try {
+    conf = await app.api("/api/mural/background", { method: "POST", body: { image: await shrink(file) } });
+    toast("Imagem de fundo salva.");
+    render();
+  } catch (err) { toast(err.message, true); }
 }
 
 function renderNotGames() {
@@ -157,7 +191,8 @@ function onInput(e) {
 
 function onChange(e) {
   const t = e.target;
-  if (t.dataset.opt) save({ game: { [t.dataset.opt]: t.checked } });
+  if (t.matches("[data-bg-file]")) { if (t.files?.[0]) uploadBackground(t.files[0]); }
+  else if (t.dataset.opt) save({ game: { [t.dataset.opt]: t.checked } });
   else if (t.dataset.pref) save({ [t.dataset.pref]: t.checked });
 }
 
@@ -172,6 +207,16 @@ async function onClick(e) {
   }
   if (e.target.closest("[data-fps-on]")) {
     try { await app.api("/api/game", { method: "POST", body: { fps_enabled: true } }); toast("Leitura de FPS ligada."); $("[data-fps-note]", root).innerHTML = ""; }
+    catch (err) { toast(err.message, true); }
+    return;
+  }
+  const bg = e.target.closest("[data-background]");
+  if (bg) {
+    if (bg.dataset.background === "photo" && !conf.background_v) return $("[data-bg-file]", root).click();
+    return save({ background: bg.dataset.background });
+  }
+  if (e.target.closest("[data-bg-remove]")) {
+    try { conf = await app.api("/api/mural/background/reset", { method: "POST", body: {} }); toast("Imagem removida."); render(); }
     catch (err) { toast(err.message, true); }
     return;
   }

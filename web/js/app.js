@@ -2,6 +2,7 @@
 import { $, h, toast } from "./ui.js";
 import { MODULES } from "./modules/index.js";
 import { ic } from "./icons.js";
+import { setupAppearance } from "./theme.js";
 
 const HISTORY_WINDOW = 300; // segundos
 
@@ -121,16 +122,7 @@ function watchdog() {
 function setupTheme() {
   $("#theme-btn").innerHTML = ic("circle-half");
   $(".bell-ico").innerHTML = ic("bell");
-  const saved = localStorage.getItem("theme");
-  if (saved) document.documentElement.dataset.theme = saved;
-  $("#theme-btn").addEventListener("click", () => {
-    const dark = matchMedia("(prefers-color-scheme: dark)").matches;
-    const cur = document.documentElement.dataset.theme || (dark ? "dark" : "light");
-    const next = cur === "dark" ? "light" : "dark";
-    document.documentElement.dataset.theme = next;
-    localStorage.setItem("theme", next);
-    if (app.snapshot) app.pushSnapshot(app.snapshot); // redesenha canvases
-  });
+  setupAppearance(app);
 }
 
 // No celular cabem 4 abas + "Mais"; as demais abrem acima da barra. No PC a barra lateral mostra todas.

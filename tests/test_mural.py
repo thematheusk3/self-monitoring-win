@@ -86,6 +86,29 @@ class PreferencesTest(_Tmp):
         self.assertNotIn("invasor", st["game"])
         self.assertTrue(st["game"]["music"])
 
+    def test_background_defaults_and_validates(self):
+        m = Mural()
+        self.assertEqual(m.status()["background"], "sky")
+        m.update({"background": "board"})
+        self.assertEqual(Mural().status()["background"], "board")
+        with self.assertRaises(ValueError):
+            m.update({"background": "invasor"})
+        with self.assertRaises(ValueError):             # sem imagem enviada, não há o que mostrar
+            m.update({"background": "photo"})
+
+    def test_background_image_upload_and_removal(self):
+        m = Mural()
+        self.assertIsNone(m.background())
+        with self.assertRaises(ValueError):
+            m.set_background("data:image/png;base64," + base64.b64encode(b"nao-e-jpeg").decode())
+        st = m.set_background("data:image/jpeg;base64," + base64.b64encode(JPEG).decode())
+        self.assertEqual(st["background"], "photo")
+        self.assertTrue(st["background_v"])
+        self.assertEqual(Mural().background(), JPEG)
+        st = m.reset_background()
+        self.assertEqual((st["background"], st["background_v"]), ("sky", 0))
+        self.assertIsNone(m.background())
+
     def test_weather_failure_keeps_last_reading(self):
         m = Mural()
         with mock.patch.object(mural, "_fetch_json", return_value=RAW):

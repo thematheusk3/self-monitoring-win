@@ -32,9 +32,11 @@ WEATHER_RETRY = 5 * 60
 TIMEOUT = 8
 MAX_ART = 8_000_000            # bytes de uma arte baixada da Steam
 MAX_UPLOAD = 900_000           # o navegador reduz a imagem antes de enviar
+BACKGROUND_FILE = "fundo-inicio.jpg"
 MISS_TTL = 6 * 3600            # não insiste numa arte que a Steam não tem
 
 MODES = ("auto", "home", "game", "music")
+BACKGROUNDS = ("sky", "ridge", "board", "aurora", "games", "photo")
 # nomes no cache da Steam, do mais comum ao alternativo (jogos novos ficam em subpastas com hash e usam outros nomes);
 # a CDN só é tentada com o primeiro
 STEAM_ART = {"hero": ("library_hero.jpg",), "cover": ("library_600x900.jpg", "library_capsule.jpg"),
@@ -110,6 +112,8 @@ class Mural:
         return {"location": c.get("location"), "mode": c.get("mode") if c.get("mode") in MODES else "auto",
                 "notifications": bool(c.get("notifications", True)), "takeover": bool(c.get("takeover", True)),
                 "context": bool(c.get("context", True)),
+                "background": c.get("background") if c.get("background") in BACKGROUNDS else "sky",
+                "background_v": int(c.get("background_v") or 0),
                 "game": {**GAME_DEFAULTS, **{k: bool(v) for k, v in (c.get("game") or {}).items() if k in GAME_DEFAULTS}},
                 "art": c.get("art") or {}}
 
@@ -118,7 +122,7 @@ class Mural:
 
     def status(self) -> dict:
         with self.lock:
-            out = {k: self.conf[k] for k in ("location", "mode", "notifications", "takeover", "context", "game")}
+            out = {k: self.conf[k] for k in ("location", "mode", "notifications", "takeover", "context", "background", "background_v", "game")}
         return {**out, "weather": self.weather(), "weather_error": self.weather_error, "weather_at": self.weather_at or None}
 
     def update(self, body: dict) -> dict:
@@ -128,6 +132,12 @@ class Mural:
                 if body["mode"] not in MODES:
                     raise ValueError("Modo desconhecido.")
                 self.conf["mode"] = body["mode"]
+            if "background" in body:
+                if body["background"] not in BACKGROUNDS:
+                    raise ValueError("Fundo desconhecido.")
+                if body["background"] == "photo" and not self.conf["background_v"]:
+                    raise ValueError("Envie uma imagem primeiro.")
+                self.conf["background"] = body["background"]
             for k in ("notifications", "takeover", "context"):
                 if k in body:
                     self.conf[k] = bool(body[k])
@@ -191,6 +201,31 @@ class Mural:
         if self.conf["location"] and not self._busy and time.time() - self.weather_at >= WEATHER_EVERY:
             threading.Thread(target=self.refresh_weather, daemon=True, name="clima").start()
         return self.weather_data
+
+    # ---------- imagem de fundo do Início ----------
+    def set_background(self, image: str) -> dict:
+        data = self._decode_image(image)
+        ART_DIR.mkdir(parents=True, exist_ok=True)
+        (ART_DIR / BACKGROUND_FILE).write_bytes(data)
+        with self.lock:
+            self.conf["background"], self.conf["background_v"] = "photo", int(time.time())
+            self._save()
+        return self.status()
+
+    def reset_background(self) -> dict:
+        (ART_DIR / BACKGROUND_FILE).unlink(missing_ok=True)
+        with self.lock:
+            self.conf["background_v"] = 0
+            if self.conf["background"] == "photo":
+                self.conf["background"] = "sky"
+            self._save()
+        return self.status()
+
+    def background(self) -> bytes | None:
+        try:
+            return (ART_DIR / BACKGROUND_FILE).read_bytes()
+        except OSError:
+            return None
 
     # ---------- arte dos jogos ----------
     def games(self, current: dict | None = None) -> list[dict]:
