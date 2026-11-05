@@ -34,18 +34,53 @@ Situação em: versão Linux 0.4.6, versão Windows 0.11.1-win.
 | Aviso de rede "Pública" bloqueando o acesso pelo celular | `Get-NetConnectionProfile` no instalador | O `install.sh` já libera a porta no `ufw`/`firewalld`; falta avisar quando há outro firewall (`nftables`/`iptables` com política DROP) | Baixo |
 | Captura de tela sem programa externo | GDI (BitBlt) + encoder PNG próprio | No Wayland só pelo portal (`org.freedesktop.portal.Screenshot`) ou Spectacle; manter o Spectacle | — (não vale) |
 
+### Ordem para levar tudo ao Linux
+
+Tudo depende da aprovação da interface repaginada. Cada etapa precisa da anterior, e o melhor é fazer uma versão do Linux por
+etapa, rodando os testes e movendo a linha para "Já equalizado" ao terminar.
+
+| Etapa | O que leva | Versões do Windows | Commits | Guia |
+|---|---|---|---|---|
+| 1 | Interface repaginada | 0.6.0-win | `54e84ac` | "Levar a interface repaginada ao Linux" |
+| 2 | Cores e estilos | 0.10.0-win, 0.11.0-win | `2640c7a`, `c1514bc` | "Levar as cores e os estilos ao Linux" |
+| 3 | Aba Atualização | 0.7.0-win | `c75d03f` | "Levar a aba Atualização ao Linux" |
+| 4 | Webhook | 0.8.0-win | `0a9c3c5` | "Levar o Mural e o webhook ao Linux", passo 1 |
+| 5 | Mural, com cores vivas, eventos, fundos e dock | 0.8.0-win a 0.10.0-win | `0a9c3c5`, `df34854`, `2640c7a` | "Levar o Mural e o webhook ao Linux", demais passos |
+| 6 | Apps que não são jogos | 0.9.1-win | `2140a7a` | "Levar o Mural e o webhook ao Linux", passo 9 |
+
+Não vão ao Linux: `atualizar.cmd` (lá já existe o `atualizar.sh`), `Enable-LhmWebServer` (seção 3) e `tabby.exe` em `NOT_GAMES`.
+
+### Levar as cores e os estilos ao Linux
+
+Só frontend. Faça logo depois da interface repaginada.
+
+1. Copie `web/css/styles.css`, `web/js/theme.js`, `web/js/theme-boot.js`, `web/js/mural-backdrop.js` e `web/js/mural-palette.js`. Os dois últimos são necessários mesmo antes do Mural: `theme.js` desenha o fundo do estilo Vidro com eles.
+2. Os blocos `[data-palette]` já vêm no `web/css/app.css` copiado inteiro na etapa da interface. Se ele foi copiado da 0.6.0-win, copie de novo do Windows atual.
+3. Em `web/index.html`: `<link rel="stylesheet" href="/css/styles.css">` antes de `mural.css`, `<script src="/js/theme-boot.js"></script>` logo depois dos estilos, e título e `aria-label` do `#theme-btn` como "Aparência". É preciso existir `<meta name="theme-color">`.
+4. Em `web/js/app.js`: importe `setupAppearance` de `theme.js` e, em `setupTheme()`, troque a leitura do `localStorage` e o clique que alterna o tema por `setupAppearance(app)`.
+5. O servidor não muda: os arquivos novos só carregam depois do login, então não entram em `PUBLIC`. As telas de login e cadastro continuam com as cores padrão.
+6. Só no Linux: confira a aba Ventoinha nos estilos Vidro e Osciloscópio. `styles.css` não tem regra para `.fan-*`, porque essa aba não existe no Windows.
+7. Confira no PC e no celular, nos dois temas.
+
+Cuidados que custaram retrabalho no Windows:
+
+- Não use `light-dark()` nos tokens: nos testes o tema escuro não aplicava. Cada cor tem regras explícitas para escuro, `[data-theme="light"]` e `prefers-color-scheme`.
+- Não ponha `backdrop-filter` em `.topbar` no celular: a barra `.tabs` fica dentro dela e é fixa, e o desfoque a prende ao cabeçalho.
+- `--bg` e `--accent` precisam continuar em hexadecimal: `theme.js` e `mural-backdrop.js` fazem contas com esses valores.
+
 ### Levar o Mural e o webhook ao Linux
 
 Faça depois da interface repaginada: usam `icons.js` e os tokens de cor.
 
 1. **Webhook:** copie `sm/webhook.py` e `tests/test_webhook.py`. Em `sm/alerts.py`, traga `external()` e a mudança em `_deliver`. Em `sm/server.py`, acrescente `/api/webhook/notify` a `PUBLIC` e à lista liberada antes do cadastro da senha. Em `server.py`, `ctx.webhook = Webhook(ctx.alerts)` depois dos alertas. Traga as rotas, o cartão de `alerts.js` e os descritores de `sm/audit.py`. Nada depende do sistema.
 2. **Mural, sem mudança:** copie `web/js/mural-stage.js`, `web/js/modules/mural.js`, `web/css/mural.css` e `tests/test_mural.py`, registre em `modules/index.js` e inclua `mural.css` no `index.html`. Traga os ícones novos de `icons.js`. O `sm/mural.py` só depende de `STEAM_ROOTS`, `_write_private` e `steam_games`.
-3. **`sm/game.py` do Linux:** `running_game()` já devolve `appid` e o jogo sem Steam vem do MangoHud. Falta só portar `game_key()`, devolver `key` em `status()` (o `"exe"` no jogo do MangoHud é opcional: sem ele, a chave usa o nome) e trazer `steam_games()`, que é igual.
+3. **`sm/game.py` do Linux:** traga `RX_KEY` e `valid_key()`, que desde a 0.9.1-win ficam em `sm/game.py` (`sm/mural.py` importa `valid_key` de lá; sem isso o Mural nem inicia). `running_game()` já devolve `appid` e o jogo sem Steam vem do MangoHud. Falta só portar `game_key()`, devolver `key` em `status()` (o `"exe"` no jogo do MangoHud é opcional: sem ele, a chave usa o nome) e trazer `steam_games()`, que é igual.
 4. **Caminhos da Steam:** `STEAM_ROOTS` já existe em `sm/desktop.py` do Linux, com as pastas nativa e Flatpak. O cache `appcache/librarycache/<appid>` deve ter o mesmo formato: confira numa instalação real.
 5. **FPS no Mural:** vem de `d.game.fps`, então funciona com o MangoHud sem mudança. No Linux, `cpu_load` e `gpu_load` por jogo existem: dá para usar no lugar do uso total.
 6. **Não muda:** clima e mídia (o frontend usa `d.media`, igual ao MPRIS atual).
 7. **Fundos do Início e dock (0.10.0-win):** `web/js/mural-backdrop.js` e os trechos em `mural-stage.js` são só frontend. No backend, `BACKGROUNDS`, `set_background`, `reset_background` e `background` em `sm/mural.py`, as rotas `/api/mural/background` e os dois textos em `sm/audit.py`. Exige `theme.js`, por causa do fundo Placa de circuito.
 8. **Cores e eventos (0.9.0-win):** `web/js/mural-palette.js` e `web/js/mural-events.js` são só frontend e entram sem mudança, assim como `display` em `sm/webhook.py` e `Alerts.external`. `sunrise` e `sunset` estão em `sm/mural.py`.
+9. **Apps que não são jogos (0.9.1-win):** em `sm/game.py` do Linux, traga `not_games`, `recent`, `set_not_game()` e a gravação em `data/game.json` junto com `fps_enabled`. O `status()` do Linux é diferente: aplique só a regra, removendo o jogo atual quando `game_key(game)` estiver na lista e devolvendo `not_games` e `recent_games`. Para o jogo do MangoHud ter chave estável, inclua `"exe"` nele. Traga a rota `POST /api/game/not-game`, o texto `game_not_game` em `sm/audit.py`, o cartão em `web/js/modules/mural.js`, as classes `.not-game*` de `mural.css` e os testes de `tests/test_features.py` que couberem.
 
 Limitações nas duas versões: impedir a tela de apagar exige HTTPS ou localhost, e o iPhone não oferece tela cheia para páginas.
 
