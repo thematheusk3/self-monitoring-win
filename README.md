@@ -102,7 +102,8 @@ exige um driver. O [LibreHardwareMonitor](https://github.com/LibreHardwareMonito
 open source) faz a leitura e publica os valores no próprio servidor web; o painel lê `http://127.0.0.1:8085/data.json`.
 
 1. Instale: `winget install LibreHardwareMonitor.LibreHardwareMonitor` (ou `.\install.cmd -LHM`).
-2. Abra como administrador e ative **Options > Remote Web Server > Run** (porta 8085).
+2. Abra como administrador uma vez e rode o `install.cmd`: ele grava **Options > Remote Web Server > Run** (porta 8085) na
+   configuração do programa. Marcar pelo menu pode se perder, porque o programa só salva ao fechar.
 3. Para iniciar junto com o Windows: **Options > Run On Windows Startup** e **Start Minimized**.
 
 Sem ele, a temperatura da GPU NVIDIA continua aparecendo (vem do driver). A iGPU AMD/Intel ganha temperatura com ele.

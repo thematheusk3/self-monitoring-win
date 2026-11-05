@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.1-win
+- **Sensores sem precisar clicar em Run**: o instalador agora grava o servidor web do LibreHardwareMonitor na configuração dele
+  e o reinicia. Antes, a opção podia se perder ao desligar o PC, e os sensores só voltavam depois de clicar em **Run** de novo.
+
 ## 0.11.0-win
 - **Estilos do painel**: a janela **Aparência** ganhou três estilos, que mudam todas as abas, a começar pela Visão geral, e
   combinam com qualquer cor, no tema escuro e no claro.

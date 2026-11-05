@@ -82,6 +82,64 @@ function Stop-Panel {
     Start-Sleep -Milliseconds 500
 }
 
+# region LHM
+# O painel lê os sensores pelo servidor web do LibreHardwareMonitor. Ele só inicia ligado se a opção estiver gravada no arquivo
+# de configuração, que é salvo ao fechar o programa: desligar o PC com ele aberto perde o "Run" clicado no menu.
+function Enable-LhmWebServer {
+    param(
+        [string]$Exe = "",
+        [string]$Task = "LibreHardwareMonitor",
+        [string]$Url = "http://127.0.0.1:8085/data.json",
+        [int]$WaitSeconds = 20
+    )
+    $name = "LibreHardwareMonitor"
+    if (-not $Exe) {
+        $action = (Get-ScheduledTask -TaskName $Task -ErrorAction SilentlyContinue).Actions | Select-Object -First 1
+        $Exe = if ($action) { $action.Execute } else { (Get-Process $name -ErrorAction SilentlyContinue | Select-Object -First 1).Path }
+    }
+    if (-not $Exe) { return "ausente" }
+    $name = [IO.Path]::GetFileNameWithoutExtension($Exe)
+    $config = Join-Path (Split-Path $Exe) "LibreHardwareMonitor.config"
+    if (-not (Test-Path $config)) { return "sem-config" }
+
+    function Read-Option {
+        $doc = New-Object System.Xml.XmlDocument
+        $doc.PreserveWhitespace = $true
+        $doc.Load($config)
+        return $doc
+    }
+    $key = "//appSettings/add[@key='runWebServerMenuItem']"
+    if ((Read-Option).SelectSingleNode($key).value -eq "true") { return "ja-ligado" }
+
+    # fecha antes de gravar: ao sair, o programa reescreve o arquivo e apagaria a mudança
+    $running = @(Get-Process $name -ErrorAction SilentlyContinue)
+    foreach ($p in $running) {
+        [void]$p.CloseMainWindow()
+        if (-not $p.WaitForExit(5000)) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue; [void]$p.WaitForExit(5000) }
+    }
+    Copy-Item -Force $config "$config.bak"
+    $doc = Read-Option
+    $node = $doc.SelectSingleNode($key)
+    if (-not $node) {
+        $node = $doc.CreateElement("add")
+        $node.SetAttribute("key", "runWebServerMenuItem")
+        [void]$doc.SelectSingleNode("//appSettings").AppendChild($node)
+    }
+    $node.SetAttribute("value", "true")
+    $doc.Save($config)
+
+    if (Get-ScheduledTask -TaskName $Task -ErrorAction SilentlyContinue) { Start-ScheduledTask -TaskName $Task }
+    else { Start-Process -FilePath $Exe -WorkingDirectory (Split-Path $Exe) }
+    $limit = (Get-Date).AddSeconds($WaitSeconds)
+    do {
+        try {
+            if ((Invoke-WebRequest -UseBasicParsing -TimeoutSec 2 $Url).StatusCode -eq 200) { return "ligado" }
+        } catch { Start-Sleep -Milliseconds 500 }
+    } while ((Get-Date) -lt $limit)
+    return "sem-resposta"
+}
+# endregion LHM
+
 $Py = Join-Path $Dest "python\python.exe"
 $PyW = Join-Path $Dest "python\pythonw.exe"
 
@@ -187,8 +245,21 @@ try {
     if ($LHM) {
         Step "Instalando o LibreHardwareMonitor (sensores)"
         Invoke-Native { winget install --id LibreHardwareMonitor.LibreHardwareMonitor --accept-source-agreements --accept-package-agreements --disable-interactivity }
-        Say "Abra o LibreHardwareMonitor como administrador e ative: Options > Remote Web Server > Run" Yellow
-        Say "e Options > Run On Windows Startup (para iniciar junto com o Windows)." Yellow
+    }
+    Step "Conferindo o servidor web do LibreHardwareMonitor (sensores)"
+    try {
+        switch (Enable-LhmWebServer) {
+            "ausente" { Say "LibreHardwareMonitor não encontrado. Para temperaturas e ventoinhas: .\install.cmd -LHM" }
+            "sem-config" {
+                Say "Abra o LibreHardwareMonitor como administrador uma vez e rode o instalador de novo: ele liga o servidor web." Yellow
+                Say "Para iniciar junto com o Windows: Options > Run On Windows Startup." Yellow
+            }
+            "ja-ligado" { Say "Já está ligado." }
+            "ligado" { Say "Ligado: agora ele inicia com o servidor web, sem precisar clicar em Run." Green }
+            "sem-resposta" { Say "A opção foi gravada, mas ele não respondeu. Abra o LibreHardwareMonitor e confira a porta 8085." Yellow }
+        }
+    } catch {
+        Say "Não foi possível ajustar o LibreHardwareMonitor: $($_.Exception.Message)" Yellow
     }
 
     # ---------- firewall ----------

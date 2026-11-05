@@ -10,7 +10,7 @@ backend de cada sistema.
 **Regra:** ao implementar algo novo em uma versão, registre aqui se dá para levar para a outra (e como), ou se é
 impossível (e por quê). Quando for portado, mova a linha para "Já equalizado" e anote a versão.
 
-Situação em: versão Linux 0.4.6, versão Windows 0.11.0-win.
+Situação em: versão Linux 0.4.6, versão Windows 0.11.1-win.
 
 ## 1. Só no Windows: dá para levar ao Linux
 
@@ -107,6 +107,7 @@ Para voltar atrás no Linux: `git restore --source=ui-classica-0.4.6 -- web`, se
 | Serviço como root com os comandos da sessão rodando como o dono da área de trabalho (`setpriv`, 0.4.4) | Linux | Não se aplica: no Windows a tarefa já roda elevada **na conta do usuário**, então áudio, tela e notificações já são os da sessão dele. O equivalente útil é a checagem de conta errada (seção 2). |
 | FPS sem configurar o jogo | Windows (PresentMon lê os eventos de apresentação do sistema) | O Linux não tem um ponto central equivalente; quem mede é a camada do jogo (MangoHud, gamescope). O mais próximo: detectar se o jogo roda no gamescope e ler as estatísticas dele. |
 | Temperatura da CPU sem programa extra | Linux (hwmon) | O Windows exige driver em modo kernel para ler os sensores; o LibreHardwareMonitor é esse driver. |
+| Ligar o servidor web do programa de sensores no instalador (0.11.1-win) | Windows (`Enable-LhmWebServer` em `install.ps1`) | O Linux lê hwmon direto, sem programa intermediário. |
 | Assinatura digital do executável | Windows (Authenticode) | Executáveis do Linux não são assinados. O equivalente é "qual pacote instalou" (já existe) e verificar se o arquivo foi alterado depois de instalado: `pacman -Qkk <pacote>` / `rpm -V` / `debsums`. **Isso dá para levar ao Linux** como sinal "binário alterado em relação ao pacote". |
 | Bytes por conexão desde o início | Linux (`ss` mostra o total da conexão) | O Windows só conta depois que alguém liga a coleta naquela conexão; o painel liga ao ver a conexão, então conexões antigas começam do zero. |
 | Detalhes do processo de outros usuários sem root | — | Nos dois sistemas exige privilégio (root / administrador). |

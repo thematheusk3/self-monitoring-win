@@ -27,7 +27,7 @@ function update(snap) {
         O painel lê esses sensores do <b>LibreHardwareMonitor</b> (gratuito e open source).</p>
       <ol class="note" style="line-height:1.6">
         <li>Instale no PC: <code>winget install LibreHardwareMonitor.LibreHardwareMonitor</code> (ou baixe em github.com/LibreHardwareMonitor).</li>
-        <li>Abra como administrador e ative <b>Options → Remote Web Server → Run</b> (porta 8085).</li>
+        <li>Abra como administrador uma vez, feche e rode o <code>install.cmd</code>: ele liga o servidor web (<b>Options → Remote Web Server → Run</b>, porta 8085) de forma permanente.</li>
         <li>Para iniciar junto com o Windows: <b>Options → Run On Windows Startup</b> e <b>Start Minimized</b>.</li>
       </ol>
       <p class="muted">Endereço lido: <code>${esc(s.url || "")}</code>${s.error ? ` · ${esc(s.error)}` : ""}</p></div>`;
