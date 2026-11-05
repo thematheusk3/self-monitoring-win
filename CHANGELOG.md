@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.11.0-win
+- **Estilos do painel**: a janela **Aparência** ganhou três estilos, que mudam todas as abas, a começar pela Visão geral, e
+  combinam com qualquer cor, no tema escuro e no claro.
+  - **Placa**: o visual de sempre, com LEDs e contatos.
+  - **Vidro**: painéis translúcidos e arredondados e medidores contínuos, sobre uma aurora na cor escolhida; no tema claro, sobre
+    uma placa clara.
+  - **Osciloscópio**: tela de instrumento, com grade nos gráficos, traço luminoso e números em fonte de instrumento; no tema
+    claro, fica como papel de registrador.
+
 ## 0.10.0-win
 - **Cores do painel**: o botão de tema agora abre **Aparência**, com seis cores de placa (verde, azul, vermelha, roxa, preta e
   amarela), cada uma no tema escuro e no claro. A escolha fica salva em cada aparelho.

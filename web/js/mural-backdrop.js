@@ -236,7 +236,7 @@ function board(g, w, h, view) {
       }
     }
     // dois componentes, para ler como placa e não como um padrão qualquer
-    for (const [cx, cy, cw, ch] of [[.62, .14, 7, 7], [.14, .16, 9, 4]]) {
+    for (const [cx, cy, cw, ch] of view.bare ? [] : [[.62, .14, 7, 7], [.14, .16, 9, 4]]) {
       const x = Math.round(w * cx / u) * u, y = Math.round(h * cy / u) * u, bw = cw * u, bh = ch * u;
       b.fillStyle = pad;
       for (let i = .5; i < cw; i++) { b.fillRect(x + i * u - u * .14, y - u * .4, u * .28, bh + u * .8); }
@@ -283,7 +283,7 @@ function aurora(g, w, h, view) {
     b.fillStyle = f;
     b.fillRect(0, 0, bw, bh);
   });
-  const bands = [curtain(p.accent), curtain("#58c6e8"), curtain("#a678f0")];
+  const bands = (view.bands || [p.accent, "#58c6e8", "#a678f0"]).map(curtain);
   return t => {
     const f = g.createLinearGradient(0, 0, 0, h);
     f.addColorStop(0, p.deep); f.addColorStop(1, mix(p.deep, p.mid, .55));
