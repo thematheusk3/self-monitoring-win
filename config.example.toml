@@ -25,6 +25,8 @@ allow_lock = true       # permite bloquear a tela do PC pelo painel
 allow_launch = true     # permite abrir aplicativos instalados pelo painel
 allow_screenshot = true # captura de tela pelo painel (sempre mostra um aviso na tela do PC)
 allow_control = true    # controle de áudio, mídia e tela (saída, volume, resolução, brilho)
+allow_services = true   # iniciar/parar/reiniciar serviços do Windows pela aba Serviços
+allow_logs = true       # aba Logs: lê o log de eventos do Windows (Sistema e Aplicativo)
 # senha: defina com  install.cmd -SetPassword  (fica em data\auth.json, só o hash)
 
 [collectors]

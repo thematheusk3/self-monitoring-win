@@ -22,7 +22,8 @@ def info(req):
                      "unlock": ctx.config.allow_lock, "can_unlock": False, "launch": ctx.config.allow_launch,
                      "screenshot": ctx.config.allow_screenshot, "control": ctx.config.allow_control,
                      "alerts": ctx.alerts is not None, "updates": ctx.updates is not None,
-                     "media": ctx.media is not None, "admin": is_admin()},
+                     "media": ctx.media is not None, "admin": is_admin(),
+                     "services": True, "services_control": ctx.config.allow_services, "logs": ctx.config.allow_logs},
         "platform": "windows",
         "sample_interval": ctx.config.sample_interval,
         "process_interval": ctx.config.process_interval,
@@ -717,3 +718,91 @@ def media_art(req):
     if not r:
         return Response({"error": "sem capa"}, 404)
     return Response(r[0], 200, {"Content-Type": r[1], "Cache-Control": "private, max-age=600"})
+
+
+def _q(req, k, default=None):
+    v = req.query.get(k, [None])[0]
+    return default if v in (None, "") else v
+
+
+# ---------- serviços ----------
+def _user_scope(req, body=None) -> bool:
+    return ((body or {}).get("scope") or _q(req, "scope", "system")) == "user"
+
+
+@route("GET", "/api/services")
+def services_list(req):
+    from .. import services
+    return services.list_units(user=_user_scope(req), processes=req.ctx.processes)
+
+
+@route("GET", "/api/services/<unit>")
+def service_detail(req, unit):
+    from .. import services
+    try:
+        return services.detail(unit, user=_user_scope(req))
+    except ValueError as e:
+        return Response({"error": str(e)}, 400)
+
+
+@route("POST", "/api/services/<unit>/<act>")
+def service_action(req, unit, act):
+    from .. import services
+    if not req.ctx.config.allow_services:
+        return Response({"error": "Controlar serviços está desativado na configuração (security.allow_services)."}, 403)
+    try:
+        return services.action(unit, act, user=_user_scope(req, req.json()))
+    except ValueError as e:
+        return Response({"error": str(e)}, 400)
+    except PermissionError as e:
+        return Response({"error": str(e)}, 403)
+    except RuntimeError as e:
+        return Response({"error": str(e)}, 500)
+
+
+# ---------- log de eventos do Windows (aba Logs) ----------
+def _logs_off(req):
+    return None if req.ctx.config.allow_logs else Response({"error": "Aba Logs desativada (security.allow_logs)."}, 403)
+
+
+@route("GET", "/api/logs")
+def logs_query(req):
+    from .. import eventlog
+    if (r := _logs_off(req)):
+        return r
+    q = {k: _q(req, k) for k in ("grep", "unit", "ident", "priority", "boot", "since", "until", "limit", "before", "after")}
+    q["kernel"] = _q(req, "kernel") in ("1", "true")
+    try:
+        return eventlog.query(q)
+    except ValueError as e:
+        return Response({"error": str(e)}, 400)
+
+
+@route("GET", "/api/logs/entry")
+def logs_entry(req):
+    from .. import eventlog
+    if (r := _logs_off(req)):
+        return r
+    try:
+        e = eventlog.entry(_q(req, "cursor", ""))
+    except ValueError as e:
+        return Response({"error": str(e)}, 400)
+    return e or Response({"error": "Linha não encontrada."}, 404)
+
+
+@route("GET", "/api/logs/boots")
+def logs_boots(req):
+    from .. import eventlog
+    if (r := _logs_off(req)):
+        return r
+    return {"boots": eventlog.boots()}
+
+
+@route("GET", "/api/logs/sources")
+def logs_sources(req):
+    """Fontes vistas nas últimas linhas (sugestões do filtro)."""
+    from .. import eventlog
+    if (r := _logs_off(req)):
+        return r
+    rows = eventlog.query({"limit": 1000, "boot": "all"})["items"]
+    return {"sources": sorted({m["ident"] for m in rows}, key=str.lower)}

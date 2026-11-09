@@ -27,6 +27,9 @@ Backend em Python (biblioteca padrão + `psutil`, `pycaw` e `winrt`); o resto é
 - **Apps**: abre pelo celular, na tela do PC, qualquer item do menu Iniciar (programas, apps da Loja, jogos da Steam).
 - **Rede**: conexões por programa (para onde, quanto envia/recebe), conexões encerradas e portas abertas.
 - **Sensores**: temperaturas, ventoinhas, tensões e potências do LibreHardwareMonitor, agrupados por componente.
+- **Serviços**: todos os serviços do Windows com estado, consumo ao vivo, dependências, eventos do serviço e
+  iniciar/parar/reiniciar.
+- **Logs**: busca no log de eventos do Windows (Sistema e Aplicativo) por texto, nível, fonte e período, com "ao vivo".
 - **Sistema**: informações do PC e do monitor, **quem está acessando o painel** (aparelho, IP, nome na rede, MAC,
   última atividade, encerrar a sessão de outro aparelho, histórico de logins e senhas erradas), **registro de todas
   as ações feitas pelo painel** (quem, quando, o quê e se deu certo), **bloquear a tela**, **desligar/reiniciar** (com timer),
@@ -209,6 +212,26 @@ Limites: **o conteúdo não é visível** (quase tudo é HTTPS). Os bytes por co
 do Windows, que exigem administrador e contam a partir de quando o painel viu a conexão. UDP (inclui QUIC/HTTP3)
 aparece sem contagem de bytes. Sockets UDP em portas dinâmicas (49152+, usados por navegadores e chamadas de voz)
 não contam como "porta aberta".
+
+## Serviços
+
+*Serviços* lista os serviços do Windows (EnumServicesStatusEx, uma chamada só) com estado, modo de início e, para os que
+estão rodando, memória, CPU e threads do processo. Vários serviços dividem o mesmo `svchost.exe`: o consumo mostrado é do
+processo inteiro (aparece "dividido com N"). "Com falha" são os parados com código de saída de erro. "Por usuário" são as
+cópias que o Windows cria para cada conta logada (ex.: `CDPUserSvc_1a2b3`).
+
+O detalhe mostra a conta, o executável, as dependências e o que o serviço gravou no log de eventos. Iniciar, parar e
+reiniciar usam o próprio Gerenciador de Serviços (o painel roda como administrador); para parar, pede confirmação. Os
+essenciais do Windows, o Defender e o Firewall não são parados pelo painel. Para desligar as ações:
+`[security] allow_services = false`.
+
+## Logs (log de eventos do Windows)
+
+*Logs* lê os canais **Sistema** e **Aplicativo** do log de eventos (o mesmo do Visualizador de Eventos) pela API nativa
+do Windows. Filtros: texto ou regex, nível (críticos, erros, avisos, informação), fonte (ex.: `Service Control Manager`,
+`nvlddmkm`), início do Windows (inclusive os anteriores) e período. "Ao vivo" acrescenta as linhas novas a cada 2 s.
+Tocar numa linha mostra todos os campos do evento, "Ver ao redor" (tudo 2 min antes e depois) e "Só esta fonte".
+Para esconder a aba: `[security] allow_logs = false`.
 
 ## Abrir aplicativos pelo celular
 
@@ -447,6 +470,10 @@ saídas `DISPLAY1`, `DISPLAY2`...; `GET /api/processes/<pid>/inspect` traz `sign
 | GET | `/api/updates` | atualizações pendentes; `POST /api/updates/refresh` verifica agora |
 | GET | `/api/alerts` | histórico; `POST /api/alerts/read`, `/clear`, `/test`; `GET/POST /api/alerts/config` |
 | POST | `/api/screenshot` | captura (avisa na tela do PC); `GET /api/screenshots`, `/api/screenshots/<nome>` |
+| GET | `/api/services?scope=system\|user` | serviços com estado e consumo; `GET /api/services/<nome>` detalhe e eventos |
+| POST | `/api/services/<nome>/start\|stop\|restart` | ações no serviço (`security.allow_services`) |
+| GET | `/api/logs?grep=&priority=4&unit=<fonte>&kernel=1&boot=0&since=&until=&limit=300&before=&after=` | log de eventos; `kernel=1` = só o canal Sistema; `before`/`after` = `cursor` de uma linha |
+| GET | `/api/logs/entry?cursor=` | todos os campos de um evento; `/api/logs/boots` inícios do Windows; `/api/logs/sources` fontes vistas |
 
 Autenticação: cookie de sessão obtido em `POST /login` (campo `password`). Troca de senha:
 `POST /api/auth/password` com `{"current": "...", "new": "..."}`. Sair: `POST /logout`.

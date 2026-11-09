@@ -25,6 +25,8 @@ class Config:
     allow_launch: bool = True            # abrir aplicativos instalados pelo painel
     allow_screenshot: bool = True        # captura de tela (sempre avisa na tela do PC)
     allow_control: bool = True           # áudio e tela (volume, saída, resolução, brilho)
+    allow_services: bool = True          # iniciar/parar/reiniciar serviços do Windows pelo painel
+    allow_logs: bool = True              # aba Logs (lê o log de eventos do Windows)
     disabled_collectors: list[str] = field(default_factory=list)
     # histórico de processos
     track_exited: bool = True
@@ -73,6 +75,8 @@ def load(path: Path | None = None) -> Config:
         allow_launch=bool(security.get("allow_launch", True)),
         allow_screenshot=bool(security.get("allow_screenshot", True)),
         allow_control=bool(security.get("allow_control", True)),
+        allow_services=bool(security.get("allow_services", True)),
+        allow_logs=bool(security.get("allow_logs", True)),
         disabled_collectors=list(collectors.get("disabled", [])),
         track_exited=bool(sampling.get("track_exited", True)),
         track_interval=max(0.2, float(sampling.get("track_interval", Config.track_interval))),

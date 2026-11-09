@@ -1,6 +1,20 @@
 # Changelog
 
-## 0.12.0-win
+## 0.13.0-win — 2026-11-09
+Trazido da versão Linux (0.6.0):
+- **Aba Serviços**: todos os serviços do Windows com estado, modo de início, memória, CPU e threads ao vivo; filtros
+  "Rodando", "Com falha" (parado com código de erro) e "Todos"; busca e ordenação. "Por usuário" mostra as cópias de
+  serviços que o Windows cria para cada conta. Serviços que dividem o mesmo `svchost.exe` aparecem como "dividido com N".
+  O detalhe traz conta, executável, dependências, último código de saída e o que o serviço gravou no log de eventos.
+  **Iniciar, parar e reiniciar** (`security.allow_services`), com confirmação para parar; os essenciais do Windows, o
+  Defender e o Firewall não são parados pelo painel.
+- **Aba Logs**: busca no log de eventos do Windows (Sistema e Aplicativo) por texto ou regex, nível, fonte, início do
+  Windows (inclusive os anteriores) e período; "Ao vivo", "Ver ao redor" (tudo 2 min antes e depois), "Só esta fonte",
+  detalhes com todos os campos do evento e "Copiar linha" (`security.allow_logs`). Lido direto da API do Windows, sem
+  PowerShell, em poucos milissegundos.
+- Aba Atualização: a data de cada versão aparece ao lado do número.
+
+## 0.12.0-win — 2026-11-09
 Trazido da versão Linux (seção 2 do [PARIDADE.md](PARIDADE.md)):
 - **Atualizações: aviso "O PC precisa reiniciar"** no topo do cartão quando o Windows Update já instalou algo que só vale
   depois de reiniciar (as mesmas chaves do registro que o Windows Update consulta).

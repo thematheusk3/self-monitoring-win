@@ -25,7 +25,7 @@ MERGE_WINDOW = 20      # s: ajustes seguidos do mesmo controle viram uma entrada
 SAVE_DELAY = 2         # s: agrupa gravações em disco (sliders mandam vários pedidos por segundo)
 CATEGORIES = {"process": "Processos", "power": "Energia", "session": "Sessão do Windows", "apps": "Apps",
               "audio": "Áudio", "media": "Mídia", "display": "Tela", "screenshot": "Captura de tela",
-              "game": "Jogo/FPS", "panel": "Painel"}
+              "game": "Jogo/FPS", "service": "Serviços", "incident": "Incidentes", "panel": "Painel"}
 
 
 class Audit:
@@ -228,6 +228,7 @@ DESCRIBERS = {
     "power_request": _power,
     "power_timer_set": _timer,
     "session_lock": lambda r, b, p: ("session", "Bloquear a tela do PC", None),
+    "service_action": lambda r, b, p: ("service", f"{ {'start': 'Iniciar', 'stop': 'Parar', 'restart': 'Reiniciar'}.get(p.get('act'), p.get('act')) } o serviço {p.get('unit')}", None),
     "session_unlock": lambda r, b, p: ("session", "Tentar desbloquear a tela do PC", None),
     "app_launch": _launch,
     "game_set": lambda r, b, p: ("game", "Ligar a leitura de FPS (PresentMon)" if b.get("fps_enabled") else "Desligar a leitura de FPS", None),
