@@ -33,7 +33,8 @@ function update(snap) {
       <p class="muted">Endereço lido: <code>${esc(s.url || "")}</code>${s.error ? ` · ${esc(s.error)}` : ""}</p></div>`;
     return;
   }
-  grid.innerHTML = chips.map(c => {
+  const hint = s.fan_hint ? `<div class="card span-all"><p class="note" style="margin:0">${ic("warning")} ${s.fan_hint}</p></div>` : "";
+  grid.innerHTML = hint + chips.map(c => {
     const groups = {};
     for (const r of c.readings) (groups[r.kind] ||= []).push(r);
     const body = Object.entries(groups).map(([k, rs]) => `

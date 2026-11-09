@@ -127,6 +127,22 @@ function mount(el, a) {
   app.onSnapshot(update);
 }
 
+// nomes das engines da GPU: Linux (fdinfo do DRM: amdgpu, i915/xe; NVML) e Windows (contadores "GPU Engine")
+const ENGINE = { gfx: "3D", render: "3D", "3D": "3D", compute: "Compute", Compute: "Compute", copy: "Cópia", Copy: "Cópia",
+  dma: "Cópia", sdma: "Cópia", dec: "Vídeo decod.", VideoDecode: "Vídeo decod.", enc: "Vídeo cod.", VideoEncode: "Vídeo cod.",
+  video: "Vídeo", "video-enhance": "Vídeo (pós)", VideoProcessing: "Vídeo (pós)", jpeg: "JPEG" };
+
+function enginesText(e) {
+  const by = {};
+  for (const [k, v] of Object.entries(e || {})) {
+    const base = k.replace(/_\d+$/, "");
+    const name = ENGINE[base] || base;
+    by[name] = Math.max(by[name] || 0, v);
+  }
+  const top = Object.entries(by).filter(([, v]) => v >= 1).sort((a, b) => b[1] - a[1]).slice(0, 4);
+  return top.length ? top.map(([k, v]) => `${esc(k)} ${Math.round(v)}%`).join(" · ") : "";
+}
+
 function stat(label, value) {
   return `<div><div class="stat-label">${label}</div><div class="stat-value">${value}</div></div>`;
 }
@@ -173,6 +189,8 @@ function update(snap) {
     $("[data-meters]", el).innerHTML = m;
     let st = "";
     if (g.temp != null) st += stat("Temperatura", `${g.temp.toFixed(1)} °C`);
+    const eng = enginesText(g.engines);
+    if (eng) st += stat("Por engine", eng);
     for (const [k, v] of Object.entries(g.clocks || {})) st += stat(`Clock ${k}`, mhz(v));
     if (g.power != null) st += stat("Potência", `${g.power.toFixed(1)} W`);
     if (g.fan != null) st += stat("Fan", `${Math.round(g.fan)} RPM`);
@@ -196,8 +214,10 @@ function update(snap) {
     if (g.enabled && g.live) {
       body = `<div class="hero-row"><div class="hero num">${g.fps != null ? Math.round(g.fps) : "—"}<small>FPS</small></div></div>
         <div class="stats">${stat("1% low", g.low1 != null ? `${Math.round(g.low1)} FPS` : "—")}${stat("Frametime", g.frametime != null ? `${g.frametime.toFixed(1)} ms` : "—")}
-        ${g.gpu_load != null ? stat("GPU", pct(g.gpu_load)) : ""}${g.cpu_load != null ? stat("CPU", pct(g.cpu_load)) : ""}</div>`;
+        ${g.gpu_load != null ? stat("GPU ocupada", pct(g.gpu_load)) : ""}${g.cpu_load != null ? stat("CPU ocupada", pct(g.cpu_load)) : ""}
+        ${g.latency != null ? stat("Latência", `${g.latency.toFixed(1)} ms`) : ""}</div>`;
       note = `Medido pelo PresentMon${g.log_file ? ` em ${esc(g.log_file)}` : ""}. 1% low aproximado (últimos 60 s).`;
+      if (g.load_source === "presentmon") note += ` CPU/GPU ocupada: quanto de cada quadro foi trabalho do jogo; perto de 100% indica quem está segurando o FPS.`;
     } else if (name) {
       body = `<div class="hero-row"><div class="hero" style="font-size:22px">${esc(name)}</div></div>`;
       note = g.enabled

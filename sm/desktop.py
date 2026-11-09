@@ -147,8 +147,45 @@ def autologin_status() -> dict:
     return {"autologin_user": user or None, "autologin_me": on and user.lower() == USER.lower(), "lock_on_start": False}
 
 
+class _WTS_SESSION_INFO(ctypes.Structure):
+    _fields_ = [("SessionId", wintypes.DWORD), ("WinStationName", wintypes.LPWSTR), ("State", ctypes.c_int)]
+
+
+WTSActive, WTSConnected, WTSDisconnected = 0, 1, 4
+WTSUserName = 5
+
+
+def logged_users() -> list[dict]:
+    """Sessões com alguém logado (ativas ou desconectadas pela troca rápida de usuário)."""
+    wts = ctypes.windll.wtsapi32
+    buf, count = ctypes.POINTER(_WTS_SESSION_INFO)(), wintypes.DWORD()
+    if not wts.WTSEnumerateSessionsW(None, 0, 1, ctypes.byref(buf), ctypes.byref(count)):
+        return []
+    out = []
+    try:
+        for i in range(count.value):
+            s = buf[i]
+            if s.SessionId == 0 or s.State not in (WTSActive, WTSConnected, WTSDisconnected):
+                continue
+            name, size = wintypes.LPWSTR(), wintypes.DWORD()
+            if not wts.WTSQuerySessionInformationW(None, s.SessionId, WTSUserName, ctypes.byref(name), ctypes.byref(size)):
+                continue
+            try:
+                user = name.value or ""
+            finally:
+                wts.WTSFreeMemory(name)
+            if user:
+                out.append({"id": s.SessionId, "user": user, "active": s.State == WTSActive})
+    finally:
+        wts.WTSFreeMemory(buf)
+    return out
+
+
 def session_status() -> dict:
-    return {"user": USER, "session": graphical_session(), "can_unlock": False, **autologin_status()}
+    sess = graphical_session()
+    others = sorted({u["user"] for u in logged_users() if u["user"].lower() != USER.lower() and u["active"]})
+    return {"user": USER, "service_user": USER, "other_users": others, "session": sess, "can_unlock": False,
+            **autologin_status()}
 
 
 def set_locked(lock: bool) -> dict:

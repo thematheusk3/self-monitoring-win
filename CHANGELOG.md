@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.12.0-win
+Trazido da versão Linux (seção 2 do [PARIDADE.md](PARIDADE.md)):
+- **Atualizações: aviso "O PC precisa reiniciar"** no topo do cartão quando o Windows Update já instalou algo que só vale
+  depois de reiniciar (as mesmas chaves do registro que o Windows Update consulta).
+- **Visão geral: uso da GPU por engine** ("Por engine: 3D 42% · Vídeo decod. 3%").
+- **Jogo: CPU e GPU ocupadas e latência**, lidas do PresentMon: quanto de cada quadro foi trabalho do jogo na CPU e na GPU
+  (perto de 100% mostra quem está segurando o FPS) e o tempo até o quadro chegar à tela.
+- **Jogos não-Steam adicionados à Steam** (ex.: launcher do Seamless Coop do Elden Ring): se o executável está na pasta de um
+  jogo da Steam instalado, vira esse jogo (nome e arte do Mural); senão aparece o nome do atalho (`shortcuts.vdf`).
+- **Sensores: dica quando nenhuma ventoinha aparece** (LibreHardwareMonitor sem o driver PawnIO, sem administrador, ou
+  ventoinhas fora da placa).
+- **Sistema > Sessão: aviso de conta errada**: se outra conta está usando o PC, o cartão diz e mostra como reinstalar.
+- **Instalador não instala na conta errada**: se foi aberto como outra conta de administrador, avisa e oferece instalar para
+  quem está usando o PC.
+- **`tools\diagnostico.ps1`**: junta tarefa agendada, sessões, porta e firewall, placa-mãe, LibreHardwareMonitor, PresentMon,
+  áudio, monitores e o fim do log, para colar quando algo não aparece. Não muda nada no PC.
+
 ## 0.11.1-win
 - **Sensores sem precisar clicar em Run**: o instalador agora grava o servidor web do LibreHardwareMonitor na configuração dele
   e o reinicia. Antes, a opção podia se perder ao desligar o PC, e os sensores só voltavam depois de clicar em **Run** de novo.

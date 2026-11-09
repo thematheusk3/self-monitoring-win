@@ -11,6 +11,7 @@ import re
 import shutil
 import threading
 import time
+import winreg
 
 from .config import ROOT
 from .win import powershell_json, run
@@ -82,7 +83,24 @@ def check() -> dict:
         errors.append("winget não encontrado (instale o 'Instalador de Aplicativo' da Microsoft Store).")
     kernel = any(i["source"] == "Windows Update" and i["sensitive"] == "sistema" for i in items)
     return {"items": items, "count": len(items), "checked": time.time(), "errors": errors, "kernel": kernel,
-            "reboot": any(i.get("reboot") for i in items)}
+            "reboot_items": any(i.get("reboot") for i in items)}
+
+
+REBOOT_KEYS = (
+    (r"SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending", "sistema"),
+    (r"SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired", "sistema"),
+)
+
+
+def reboot_pending() -> dict | None:
+    """O Windows já instalou algo que só vale depois de reiniciar (mesmas chaves que o Windows Update consulta)."""
+    for path, reason in REBOOT_KEYS:
+        try:
+            winreg.CloseKey(winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, path))
+            return {"reason": reason, "running": None, "installed": None}
+        except OSError:
+            continue
+    return None
 
 
 class Updates:
@@ -97,7 +115,11 @@ class Updates:
 
     def status(self) -> dict:
         with self.lock:
-            return {"running": self.running, **(self.data or {"items": [], "count": None, "checked": None})}
+            d = {"running": self.running, **(self.data or {"items": [], "count": None, "checked": None})}
+        if "reboot_items" not in d:        # cache de versões antigas: "reboot" era se algum item pedia reinício
+            d["reboot_items"] = bool(d.get("reboot"))
+        d["reboot"] = reboot_pending()
+        return d
 
     def refresh(self) -> None:
         with self.lock:

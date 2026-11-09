@@ -108,6 +108,8 @@ open source) faz a leitura e publica os valores no próprio servidor web; o pain
 
 Sem ele, a temperatura da GPU NVIDIA continua aparecendo (vem do driver). A iGPU AMD/Intel ganha temperatura com ele.
 A porta 8085 do LibreHardwareMonitor não precisa ser liberada no firewall: o painel lê pelo localhost.
+Se nenhuma ventoinha aparecer, a aba Sensores diz o provável motivo (falta o driver PawnIO, o programa não está como
+administrador, ou as ventoinhas estão num hub fora da placa). Para um relatório completo, rode `tools\diagnostico.ps1`.
 
 ## FPS dos jogos (PresentMon)
 
@@ -117,7 +119,8 @@ quadros do próprio Windows (ETW) e mede qualquer jogo, sem injetar nada nele e 
 Instale com `.\install.cmd -PresentMon` (ou `winget install Intel.PresentMon.Console --scope machine`) e ligue
 "FPS" no cartão **Jogo** (Visão geral). Ligado, o painel deixa o PresentMon rodando e mede o processo da janela em
 foco (se estiver desenhando), senão o jogo da Steam aberto, senão quem mais desenha quadros. Mostra FPS, 1% low
-(aprox., últimos 60 s) e frametime. Desligado, o PresentMon é encerrado e nada é medido.
+(aprox., últimos 60 s), frametime, **CPU e GPU ocupadas** (quanto de cada quadro foi trabalho do jogo em cada uma; perto
+de 100% mostra quem segura o FPS) e a latência até a tela. Desligado, o PresentMon é encerrado e nada é medido.
 
 O PresentMon vê qualquer programa que desenhe com a GPU, não só jogos. Se um app aparecer como jogo, marque-o em
 **Mural > Apps que não são jogos**. Navegadores, Discord, VS Code, Tabby e parecidos já são ignorados de fábrica.
@@ -125,7 +128,9 @@ O PresentMon vê qualquer programa que desenhe com a GPU, não só jogos. Se um 
 Por segurança o painel só usa um PresentMon em pasta de administrador (o do winget `--scope machine` ou um
 `PresentMon*.exe` copiado para `C:\Program Files\SelfMonitoring\tools`).
 
-O jogo da Steam aberto aparece mesmo sem PresentMon (a Steam grava o AppID em execução no registro).
+O jogo da Steam aberto aparece mesmo sem PresentMon (a Steam grava o AppID em execução no registro). Jogos não-Steam
+adicionados à Steam aparecem com o nome do atalho; se o executável está na pasta de um jogo da Steam (ex.: launcher de
+mod), aparecem como esse jogo, com a arte dele.
 
 ## Desenvolver
 
@@ -217,6 +222,8 @@ do bloqueio. Desative com `security.allow_launch = false`.
 *Sistema > Sessão* mostra se a tela está bloqueada e permite **bloquear** pelo celular. Desbloquear pelo celular não
 é possível no Windows (a tela de bloqueio só aceita a senha, o PIN ou o Windows Hello no próprio PC).
 Se o login automático do Windows estiver ligado, o painel avisa (qualquer um que ligar o PC entra na sua conta).
+Se outra conta estiver usando o PC (o painel roda na conta da tarefa agendada), o cartão avisa e mostra como reinstalar;
+o próprio instalador confere isso antes de criar a tarefa.
 
 ## Áudio e tela
 
@@ -323,7 +330,8 @@ não exponha a porta na internet; use uma VPN.
 
 *Sistema > Atualizações pendentes*: Windows Update (a mesma busca das Configurações, inclui drivers; leva de
 30 s a alguns minutos) e `winget upgrade`. Verifica sozinho a cada 6 h. Atualizações do Windows e drivers aparecem
-destacadas. **O painel não instala atualizações**.
+destacadas. Quando o Windows já instalou algo que só vale depois de reiniciar, aparece "O PC precisa reiniciar" no
+topo do cartão. **O painel não instala atualizações**.
 
 ### Atualização do painel
 
@@ -351,6 +359,7 @@ config.example.toml       modelo de configuração (vira config.toml na instala�
 requirements.txt          dependências (psutil, pycaw/comtypes, winrt)
 tests/                    testes (python -X utf8 -m unittest discover -s tests -t .)
 tools/simular-suspeito.ps1  processos inofensivos que imitam malware (para testar a aba Suspeitos)
+tools/diagnostico.ps1     junta o que é preciso para entender um problema (não muda nada); cole a saída
 sm/
   win.py                  subprocessos sem janela, PowerShell, admin, versão do .exe, encoder PNG
   config.py               leitura da configuração

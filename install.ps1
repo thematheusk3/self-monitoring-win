@@ -70,6 +70,21 @@ if (-not (Test-Admin)) {
 }
 if (-not $ForUser) { $ForUser = "$env:USERDOMAIN\$env:USERNAME" }
 
+# A tarefa roda no logon de $ForUser. Se o instalador foi aberto como OUTRA conta de administrador (terminal
+# "Executar como outro usuário", conta de admin separada), o painel ficaria na conta errada: confere com quem está
+# usando o PC (dono da sessão do console) e pergunta.
+if (-not $Uninstall -and -not $SetPassword) {
+    $consoleUser = ""
+    try { $consoleUser = [string](Get-CimInstance Win32_ComputerSystem -ErrorAction Stop).UserName } catch {}
+    if ($consoleUser -and $consoleUser -ne $ForUser -and ($consoleUser -split '\\')[-1] -ne ($ForUser -split '\\')[-1]) {
+        Write-Host ""
+        Write-Host "Atenção: o painel seria instalado para a conta '$ForUser', mas quem está usando o PC é '$consoleUser'." -ForegroundColor Yellow
+        Write-Host "O painel roda no logon dessa conta: áudio, tela e apps seriam os dela." -ForegroundColor Yellow
+        $ans = Read-Host "Instalar para '$consoleUser'? [S/n] (para escolher outra: install.cmd -ForUser CONTA)"
+        if ($ans -notmatch '^[nN]') { $ForUser = $consoleUser }
+    }
+}
+
 function Pause-IfElevated {
     if ($Elevated) { Write-Host ""; Read-Host "Pressione Enter para fechar" | Out-Null }
 }

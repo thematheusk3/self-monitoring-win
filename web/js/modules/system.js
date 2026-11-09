@@ -101,11 +101,18 @@ async function refreshSession() {
       <dl class="kv" style="margin-bottom:12px"><dt>Usuário</dt><dd>${esc(st.user)}</dd><dt>Sessão</dt><dd>${esc(s.type === "rdp" ? "Área de Trabalho Remota" : "Console")}${s.since ? ` · desde ${new Date(s.since * 1000).toLocaleString("pt-BR")}` : ""}</dd></dl>
       <div class="power-btns">
         <button class="btn" data-sess="lock" ${s.locked ? "disabled" : ""}>${ic("lock")} Bloquear</button>
-      </div>`
+      </div>
+      ${!s.active && st.other_users?.length ? otherUsersHtml(st) : ""}`
+    : st.other_users?.length ? otherUsersHtml(st)
     : `<p class="confirm-text" style="margin-top:0">O painel não está rodando na sessão do usuário.</p>`) +
     `<p class="note">O Windows não permite desbloquear a tela remotamente: a tela de bloqueio só aceita a senha, o PIN ou o Windows Hello no próprio PC.
       ${st.autologin_me ? `<br><b>${ic("warning")} O login automático do Windows está ligado: qualquer um que ligar o PC entra na sua conta.</b>` : ""}</p>`;
 }
+
+// o painel roda na conta da tarefa agendada; se outra conta está usando o PC, áudio, tela e apps são os da conta errada
+const otherUsersHtml = st => `<p class="confirm-text"><b>${ic("warning")} Quem está usando o PC agora é ${esc(st.other_users.join(", "))},
+    mas o painel roda na conta ${esc(st.service_user || st.user)}.</b> Áudio, tela, captura e apps ficam na sessão errada.
+    Na conta certa, rode o <code>install.cmd</code> de novo (ou <code>install.cmd -ForUser ${esc(st.other_users[0])}</code> como administrador).</p>`;
 
 export function openUnlock(a, onDone) {
   const dlg = $("#sheet");
@@ -340,14 +347,17 @@ function renderUpdates(st) {
   if (!card) return;
   card.querySelector("[data-upd-refresh]").disabled = st.running;
   const body = $("[data-upd-body]", card);
-  if (st.count == null) { body.innerHTML = st.running ? "Verificando…" : "Ainda não verificado."; return; }
+  const rb = st.reboot;
+  const rebootHtml = rb ? `<p class="fan-alert warning" style="margin:0 0 8px">${ic("arrow-clockwise")} <b>O PC precisa reiniciar</b> para terminar de aplicar o que o Windows Update já instalou${
+    rb.reason === "kernel" ? `: está rodando o kernel <span class="mono">${esc(rb.running)}</span>${rb.installed ? `, mas o instalado é <span class="mono">${esc(rb.installed)}</span>` : ""}` : ""}.</p>` : "";
+  if (st.count == null) { body.innerHTML = rebootHtml + (st.running ? "Verificando…" : "Ainda não verificado."); return; }
   const by = {};
   for (const i of st.items) (by[i.source] ||= []).push(i);
   const sens = st.items.filter(i => i.sensitive);
-  body.innerHTML = `<p style="margin:0 0 8px">${st.count ? `<b>${st.count}</b> atualizações pendentes` : "Tudo atualizado"}
+  body.innerHTML = `${rebootHtml}<p style="margin:0 0 8px">${st.count ? `<b>${st.count}</b> atualizações pendentes` : "Tudo atualizado"}
       · verificado ${new Date(st.checked * 1000).toLocaleString("pt-BR")}${st.running ? " · verificando…" : ""}</p>
     ${sens.length ? `<p class="fan-alert warning" style="margin:0 0 8px">Inclui atualizações do Windows ou de drivers (${esc(sens.map(i => i.name).join("; "))}).
-      Atualize <b>sentado na frente do PC</b>${st.reboot ? "; algumas pedem reinício" : ""}.</p>` : ""}
+      Atualize <b>sentado na frente do PC</b>${st.reboot_items ? "; algumas pedem reinício" : ""}.</p>` : ""}
     ${Object.entries(by).map(([src, items]) => `<details ${items.length <= 10 ? "open" : ""}><summary class="stat-label" style="cursor:pointer;margin:6px 0">${esc(src)} (${items.length})</summary>
       <table class="ptable upd"><tbody>${items.map(i => `<tr><td class="pname">${esc(i.name)} ${i.sensitive ? `<span class="chip ${SENS[i.sensitive][1]}">${SENS[i.sensitive][0]}</span>` : ""}</td>
         <td class="muted mono">${esc(i.current || "")}</td><td class="mono">→ ${esc(i.new || "")}</td></tr>`).join("")}</tbody></table></details>`).join("")}
