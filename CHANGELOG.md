@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.17.2-win — 2026-11-09
+- **Logs: "Mais recentes primeiro"** (ligado de fábrica): a linha mais nova fica no topo, as antigas carregam embaixo e,
+  com "Ao vivo", as novas entram em cima. Desmarque para a ordem antiga (mais novas no fim). A escolha fica salva em
+  cada aparelho.
+
 ## 0.17.1-win — 2026-11-09
 - **Mural não fechava (trocava de layout)**: qualquer toque dentro do Mural, inclusive no X e nos botões de música, contava
   como "trocar o layout". Agora só o botão de layout troca o layout.

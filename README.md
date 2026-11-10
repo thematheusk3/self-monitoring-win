@@ -233,7 +233,7 @@ essenciais do Windows, o Defender e o Firewall não são parados pelo painel. Pa
 
 *Logs* lê os canais **Sistema** e **Aplicativo** do log de eventos (o mesmo do Visualizador de Eventos) pela API nativa
 do Windows. Filtros: texto ou regex, nível (críticos, erros, avisos, informação), fonte (ex.: `Service Control Manager`,
-`nvlddmkm`), início do Windows (inclusive os anteriores) e período. "Ao vivo" acrescenta as linhas novas a cada 2 s.
+`nvlddmkm`), início do Windows (inclusive os anteriores) e período. "Ao vivo" acrescenta as linhas novas a cada 2 s. Por padrão as mais recentes ficam no topo ("Mais recentes primeiro").
 Tocar numa linha mostra todos os campos do evento, "Ver ao redor" (tudo 2 min antes e depois) e "Só esta fonte".
 Para esconder a aba: `[security] allow_logs = false`.
 

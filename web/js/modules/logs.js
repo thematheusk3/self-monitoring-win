@@ -27,6 +27,7 @@ function mount(el, a) {
         <datalist id="logs-units"></datalist>
         <label class="check" title="Só o canal Sistema (drivers, serviços, Windows); sem marcar, Sistema e Aplicativo"><input type="checkbox" data-f="kernel"> Só Sistema</label>
         <label class="check"><input type="checkbox" data-live> Ao vivo</label>
+        <label class="check"><input type="checkbox" data-desc> Mais recentes primeiro</label>
         <span style="flex:1"></span>
         <button class="btn btn-sm" data-act="search">Buscar</button>
       </div>
@@ -41,6 +42,12 @@ function mount(el, a) {
   $("[data-f=unit]", el).addEventListener("keydown", e => { if (e.key === "Enter") apply(); });
   for (const s of $$("select[data-f], input[type=checkbox][data-f]", el)) s.addEventListener("change", apply);
   $("[data-live]", el).addEventListener("change", e => setLive(e.target.checked));
+  $("[data-desc]", el).checked = desc;
+  $("[data-desc]", el).addEventListener("change", e => {
+    desc = e.target.checked;
+    try { localStorage.setItem("logs-desc", desc ? "1" : "0"); } catch { /* só nesta visita */ }
+    render(true);
+  });
   el.addEventListener("click", e => {
     const act = e.target.closest("[data-act]")?.dataset.act;
     if (act === "search") apply();
@@ -105,7 +112,8 @@ async function newer() {
     const r = await app.api(`/api/logs?${p}`);
     if (r.items.length) {
       const box = $(".logs-box", root);
-      const atEnd = box.scrollTop + box.clientHeight >= box.scrollHeight - 30;
+      // acompanha as novas só se a pessoa está vendo as mais recentes (no topo ou no fim, conforme a ordem)
+      const atEnd = desc ? box.scrollTop < 30 : box.scrollTop + box.clientHeight >= box.scrollHeight - 30;
       rows = [...rows, ...r.items].slice(-3000);
       render(atEnd);
     }
@@ -118,20 +126,26 @@ function setLive(on) {
   if (on) liveTimer = setInterval(newer, 2000);
 }
 
+// ordem da lista: mais recentes em cima (padrão) ou embaixo, lembrada em cada aparelho
+let desc = (() => { try { return localStorage.getItem("logs-desc") !== "0"; } catch { return true; } })();
+
+/** scrollEnd: leva a vista até as linhas mais recentes. */
 function render(scrollEnd) {
   const ol = $("[data-rows]", root);
   $("[data-act=older]", root).hidden = !more;
   $("[data-count]", root).textContent = rows.length ? `${rows.length} linhas` : "";
   if (!rows.length) { ol.innerHTML = `<li class="empty">Nenhuma linha com esses filtros.</li>`; return; }
   let lastDay = "";
-  ol.innerHTML = rows.map((m, i) => {
+  const order = rows.map((m, i) => [m, i]);
+  if (desc) order.reverse();
+  ol.innerHTML = order.map(([m, i]) => {
     const d = new Date(m.ts * 1000), day = d.toLocaleDateString("pt-BR");
     const sep = day !== lastDay ? `<li class="logs-day">${day}</li>` : "";
     lastDay = day;
     return `${sep}<li data-i="${i}" class="lg p${m.prio}"><time>${d.toLocaleTimeString("pt-BR")}</time>
       <span class="lg-who" title="${esc(`${m.channel || m.unit} · evento ${m.event_id ?? ""}`)}">${esc(m.ident)}</span><span class="lg-msg">${esc(m.msg.split("\n")[0])}</span></li>`;
   }).join("");
-  if (scrollEnd) { const box = $(".logs-box", root); box.scrollTop = box.scrollHeight; }
+  if (scrollEnd) { const box = $(".logs-box", root); box.scrollTop = desc ? 0 : box.scrollHeight; }
 }
 
 function renderActive() {
