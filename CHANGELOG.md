@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.17.1-win — 2026-11-09
+- **Mural não fechava (trocava de layout)**: qualquer toque dentro do Mural, inclusive no X e nos botões de música, contava
+  como "trocar o layout". Agora só o botão de layout troca o layout.
+- Abrir e fechar o Mural várias vezes não enche mais o histórico do navegador: o Voltar do celular fecha o Mural em vez
+  de reabri-lo, e fechar pelo X ou pelo Esc não deixa entradas para trás.
+
 ## 0.17.0-win — 2026-11-09
 - **Mural com layouts**: escolha em Mural > Layout (com miniaturas) ou pelo botão de quadrados na barra do Mural.
   - **Cinema** (novo padrão): a tela vira um quadro de filme, com faixas escuras em cima e embaixo, tingidas pela cor

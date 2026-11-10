@@ -211,7 +211,7 @@ function onChange(e) {
 }
 
 async function onClick(e) {
-  if (e.target.closest("[data-open]")) { location.hash = "mural:abrir"; return openNow(true); }
+  if (e.target.closest("[data-open]")) return openFromButton();
   const mode = e.target.closest("[data-mode]");
   if (mode) return save({ mode: mode.dataset.mode });
   const lay = e.target.closest("[data-layout]");
@@ -324,8 +324,21 @@ async function shrink(file) {
 }
 
 // ---------- abrir ----------
+// Cada abertura ocupa uma só entrada no histórico: o Voltar do celular fecha o Mural, e fechar pelo X/Esc remove a
+// entrada (antes, abrir e fechar várias vezes empilhava #mural:abrir e o Voltar reabria o Mural).
+let pushed = false;     // a entrada #mural:abrir foi criada aqui (e não veio de um endereço salvo)
+
 function openNow(fullscreen) {
-  return openStage(app, { fullscreen, exit: () => { if (location.hash === "#mural:abrir") location.hash = "mural"; } });
+  return openStage(app, { fullscreen, exit: () => {
+    if (location.hash !== "#mural:abrir") { pushed = false; return; }     // fechou pelo Voltar: a entrada já saiu
+    if (pushed) { pushed = false; history.back(); }
+    else history.replaceState(null, "", "#mural");                        // aberto por endereço salvo: não sai do painel
+  } });
+}
+
+function openFromButton() {
+  if (location.hash !== "#mural:abrir") { history.pushState(null, "", "#mural:abrir"); pushed = true; }
+  return openNow(true);
 }
 
 function route(sub) {

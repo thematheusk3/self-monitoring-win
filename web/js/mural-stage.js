@@ -605,7 +605,7 @@ function build() {
       <div class="mural-dock-modes"><span class="mural-dock-pill"></span>
         ${MODES.map(([id, label, icon]) => `<button data-mode="${id}" aria-pressed="false" aria-label="${label}">${ic(icon)}<span>${label}</span></button>`).join("")}</div>
       <div class="mural-dock-tools">
-        <button data-layout title="Trocar o layout" aria-label="Trocar o layout">${ic("squares-four")}</button>
+        <button data-next-layout title="Trocar o layout" aria-label="Trocar o layout">${ic("squares-four")}</button>
         <button data-bg title="Trocar o fundo" aria-label="Trocar o fundo">${ic("image")}</button>
         <button data-fs title="Tela cheia" aria-label="Tela cheia">${ic("frame-corners")}</button>
         <button data-exit title="Sair do Mural" aria-label="Sair do Mural">${ic("x")}</button>
@@ -626,7 +626,7 @@ function build() {
     const mode = e.target.closest("[data-mode]");
     if (mode) return setMode(mode.dataset.mode);
     if (e.target.closest("[data-bg]")) return nextBackground();
-    if (e.target.closest("[data-layout]")) return nextLayout();
+    if (e.target.closest("[data-next-layout]")) return nextLayout();
     if (e.target.closest("[data-fs]")) return toggleFullscreen();
     if (e.target.closest("[data-exit]")) return close();
     if (e.target.closest("[data-pick-city]")) return close();
