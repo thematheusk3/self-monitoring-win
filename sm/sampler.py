@@ -39,6 +39,11 @@ class Context:
         self.webhook = None     # Webhook
         self.power_timer = None # PowerTimer
         self.media = None       # Media (controles de mídia do Windows), criado pelo coletor "media"
+        self.store = None       # Store (data/store.db)
+        self.journal = None     # EventLogWatcher (mesmo nome da versão Linux, onde é o vigia do journal)
+        self.investigator = None  # Investigator (incidentes)
+        self.hwinv = None       # HardwareInventory
+        self.recorder = None    # MetricsRecorder
 
     def snapshot(self) -> dict:
         return {"ts": self.ts, "seq": self.seq, "series": dict(self.history.latest), "data": self.data}

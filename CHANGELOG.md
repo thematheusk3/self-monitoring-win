@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.14.0-win — 2026-11-09
+Trazido da versão Linux (0.6.0):
+- **Incidentes**: o painel vigia o log de eventos do Windows o tempo todo e abre um incidente quando o driver de vídeo
+  trava ou é reiniciado (TDR, `nvlddmkm`, watchdog da GPU), um programa trava (com código da exceção e módulo com falha),
+  há tela azul, a memória virtual acaba, um serviço cai, o disco ou o NTFS dá erro, ou há erro de hardware (WHEA).
+  Gatilhos próximos viram um incidente só. O relatório traz linha do tempo (eventos, ações do painel, atualizações do
+  Windows), métricas antes/no momento/pico, processos e jogo no momento, o programa ou serviço envolvido, mudanças recentes
+  de driver/BIOS/hardware, hipóteses com confiança e evidências (por regras, sem IA) e "Copiar para IA" (Markdown).
+  Na partida, detecta se o Windows anterior desligou sem desligamento normal (Kernel-Power 41/EventLog 6008, inclusive
+  tela azul). Também investiga qualquer momento escolhido (aba Incidentes ou uma linha da aba Logs). Alerta "Incidente
+  detectado". Relatórios de travamento antigos que o Windows reenvia no logon não abrem incidente.
+- **Histórico persistente** (`data\store.db`, `[history]`): eventos classificados, incidentes, métricas por minuto e por
+  hora (`/api/history/metrics`) e inventário de hardware e software (placa, BIOS, CPU e microcódigo, GPUs e versão do
+  driver, discos, build do Windows) gravado quando muda (`/api/history/hardware`).
+- **Preparação para vários computadores**: identidade estável da máquina (a partir do MachineGuid, sem expô-lo) e pacote
+  de envio por `seq` (`/api/fleet`, `/api/fleet/export`), no mesmo formato da versão Linux.
+- Novas séries no histórico: VRAM e memória compartilhada da GPU (%), consumo e clock da GPU e uso do arquivo de paginação.
+
 ## 0.13.0-win — 2026-11-09
 Trazido da versão Linux (0.6.0):
 - **Aba Serviços**: todos os serviços do Windows com estado, modo de início, memória, CPU e threads ao vivo; filtros

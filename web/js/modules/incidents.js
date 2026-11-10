@@ -6,7 +6,7 @@ let app, root, items = [], filter = "open", current = null, timer = null, detail
 const SEV = { critical: ["critical", "Crítico"], error: ["serious", "Erro"], warning: ["warning", "Aviso"], notice: ["", "Nota"], info: ["", "Info"] };
 const STATUS = { analyzing: "Analisando…", open: "Aberto", resolved: "Resolvido", ignored: "Ignorado" };
 const FAMILY = { gpu: "GPU", crash: "Programa", memory: "Memória", service: "Serviço", thermal: "Temperatura", storage: "Disco",
-  hardware: "Hardware", kernel: "Kernel", power: "Energia", session: "Sessão", manual: "Manual", change: "Mudança", other: "Outro" };
+  hardware: "Hardware", kernel: "Tela azul", power: "Energia", session: "Sessão", manual: "Manual", change: "Mudança", other: "Outro" };
 const CHARTS = [["cpu.temp", "Temp. CPU", "°C"], ["gpu.0.temp", "Temp. GPU", "°C"], ["gpu.0.busy", "Uso da GPU", "%"],
   ["cpu.total", "Uso da CPU", "%"], ["memory.percent", "Memória", "%"], ["gpu.0.gtt", "GTT da GPU", "%"], ["game.fps", "FPS", ""]];
 
@@ -69,8 +69,8 @@ async function load() {
 
 function renderList() {
   const w = watcher;
-  $("[data-watch]", root).textContent = !w ? "Vigia do journal desligado"
-    : w.running ? `Vigiando o log do sistema · ${w.matched} eventos classificados${w.backlog_done ? "" : " · lendo o histórico…"}`
+  $("[data-watch]", root).textContent = !w ? "Vigia do log de eventos desligado"
+    : w.running ? `Vigiando o log de eventos do Windows · ${w.matched} eventos classificados${w.backlog_done ? "" : " · lendo o histórico…"}`
     : `Vigia parado${w.error ? `: ${w.error}` : ""}`;
   const ul = $("[data-items]", root);
   if (!items.length) {
@@ -135,24 +135,26 @@ function renderDetail() {
       <div class="card-head"><div class="card-title">${sub.type === "unit" ? "Serviço envolvido" : sub.type === "gpu" ? "Dispositivo" : "Programa envolvido"}</div></div>
       <dl class="kv">
         ${sub.game ? `<dt>Jogo</dt><dd>${esc(sub.game)}</dd>` : ""}
-        <dt>${sub.type === "unit" ? "Unidade" : "Nome"}</dt><dd>${esc(sub.name || "—")}</dd>
+        <dt>${sub.type === "unit" ? "Serviço" : "Nome"}</dt><dd>${esc(sub.name || "—")}${sub.app_version ? ` <span class="muted">${esc(sub.app_version)}</span>` : ""}</dd>
         ${sub.launcher ? `<dt>Aberto por</dt><dd>${esc(sub.launcher)}</dd>` : ""}
-        ${sub.signal ? `<dt>Sinal</dt><dd>${esc(sub.signal)}</dd>` : ""}
+        ${sub.signal ? `<dt>Exceção</dt><dd><span class="mono">${esc(sub.signal)}</span>${sub.meaning ? ` · ${esc(sub.meaning)}` : ""}</dd>` : ""}
+        ${sub.module ? `<dt>Módulo com falha</dt><dd class="mono">${esc(sub.module)} ${esc(sub.module_version || "")}</dd>` : ""}
+        ${sub.core ? `<dt>Arquivo de despejo</dt><dd class="mono">${esc(sub.core)}</dd>` : ""}
         ${sub.pid ? `<dt>PID</dt><dd>${sub.pid}</dd>` : ""}
         ${sub.runtime != null ? `<dt>Rodou por</dt><dd>${dur(sub.runtime)}</dd>` : ""}
         ${sub.result ? `<dt>Resultado</dt><dd>${esc(sub.result)}</dd>` : ""}
-        ${sub.unit ? `<dt>Unidade</dt><dd class="mono">${esc(sub.unit)}</dd>` : ""}
+        ${sub.unit && sub.unit !== sub.name ? `<dt>Nome do serviço</dt><dd class="mono">${esc(sub.unit)}</dd>` : ""}
       </dl>
       ${sub.exe ? `<div class="cmdline">${esc(sub.exe)}${sub.cmdline ? `\n${esc(sub.cmdline)}` : ""}</div>` : ""}
-      ${sub.stack?.length ? `<details><summary class="stat-label">Pilha do core dump</summary><pre class="inc-pre">${esc(sub.stack.join("\n"))}</pre></details>` : ""}
-      ${sub.logs?.length ? `<details open><summary class="stat-label">Últimas linhas do serviço</summary><pre class="inc-pre">${esc(sub.logs.map(m => `${hm(m.ts)} ${m.msg}`).join("\n"))}</pre></details>` : ""}
+      ${sub.stack?.length ? `<details open><summary class="stat-label">Detalhes da falha</summary><pre class="inc-pre">${esc(sub.stack.join("\n"))}</pre></details>` : ""}
+      ${sub.logs?.length ? `<details open><summary class="stat-label">Eventos do serviço</summary><pre class="inc-pre">${esc(sub.logs.map(m => `${hm(m.ts)} ${m.msg}`).join("\n"))}</pre></details>` : ""}
     </article>` : ""}
 
     ${metricsCard(r)}
 
     <article class="card span-all">
       <div class="card-head"><div><div class="card-title">Linha do tempo</div>
-        <div class="card-sub">${r.window ? `${hm(r.window[0])} a ${hm(r.window[1])}` : ""} · eventos classificados, ações do painel, arquivos e pacotes</div></div></div>
+        <div class="card-sub">${r.window ? `${hm(r.window[0])} a ${hm(r.window[1])}` : ""} · eventos classificados, ações do painel e atualizações do Windows</div></div></div>
       ${(r.timeline || []).length ? `<ol class="timeline">${r.timeline.map(e => `
         <li class="tl fam-${esc(e.family)} ${e.trigger ? "tl-trigger" : ""} sev-${esc(e.severity)}">
           <time>${hm(e.ts)}</time>
@@ -221,11 +223,11 @@ function changesCard(r) {
   const pk = ch.packages || [], hw = ch.hardware || [], panel = ch.panel || [], files = ch.files || [];
   if (!pk.length && !hw.length && !panel.length && !files.length) return "";
   return `<article class="card">
-    <div class="card-head"><div><div class="card-title">Mudanças recentes</div><div class="card-sub">Pacotes (3 dias), hardware (7 dias), painel e arquivos</div></div></div>
+    <div class="card-head"><div><div class="card-title">Mudanças recentes</div><div class="card-sub">Windows Update (3 dias), hardware e drivers (7 dias), painel e arquivos</div></div></div>
     <ul class="inc-changes">
       ${files.map(f => `<li><time>${hm(f.ts)}</time> ${esc(f.path)} alterado</li>`).join("")}
       ${panel.map(a => `<li><time>${hm(a.ts)}</time> Painel: ${esc(a.text)}</li>`).join("")}
-      ${pk.slice(-12).map(u => `<li><time>${new Date(u.ts * 1000).toLocaleDateString("pt-BR")}</time> ${esc(u.action)} ${esc(u.package)} <span class="muted">${esc(u.version)}</span></li>`).join("")}
+      ${pk.slice(-12).map(u => `<li><time>${new Date(u.ts * 1000).toLocaleDateString("pt-BR")}</time> ${esc(u.package)}</li>`).join("")}
       ${hw.map(h => `<li><time>${new Date(h.ts * 1000).toLocaleDateString("pt-BR")}</time> Hardware: ${esc((h.changes || []).map(c => c.path).join(", "))}</li>`).join("")}
     </ul></article>`;
 }

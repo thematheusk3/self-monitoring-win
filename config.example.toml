@@ -47,3 +47,9 @@ presentmon = ""
 # Não baixa nem instala nada. Com false, mostra só o changelog desta versão.
 check = true
 repo = "thematheusk3/self-monitoring-win"
+
+[history]
+# Banco data/store.db: eventos do log do Windows classificados, incidentes, métricas por minuto/hora e inventário de hardware.
+enabled = true
+days = 30            # eventos e métricas por minuto ficam N dias; o resumo por hora fica 1 ano; incidentes ficam
+incidents = true     # vigia do log de eventos + investigador de incidentes (aba Incidentes)

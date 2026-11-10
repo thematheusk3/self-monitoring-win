@@ -23,7 +23,9 @@ def info(req):
                      "screenshot": ctx.config.allow_screenshot, "control": ctx.config.allow_control,
                      "alerts": ctx.alerts is not None, "updates": ctx.updates is not None,
                      "media": ctx.media is not None, "admin": is_admin(),
-                     "services": True, "services_control": ctx.config.allow_services, "logs": ctx.config.allow_logs},
+                     "services": True, "services_control": ctx.config.allow_services, "logs": ctx.config.allow_logs,
+                     "incidents": ctx.investigator is not None, "history": ctx.store is not None},
+        "machine": _machine(),
         "platform": "windows",
         "sample_interval": ctx.config.sample_interval,
         "process_interval": ctx.config.process_interval,
@@ -806,3 +808,148 @@ def logs_sources(req):
         return r
     rows = eventlog.query({"limit": 1000, "boot": "all"})["items"]
     return {"sources": sorted({m["ident"] for m in rows}, key=str.lower)}
+
+
+def _machine() -> dict:
+    from ..fleet import identity
+    return identity()
+
+
+def _no_store(req):
+    return None if req.ctx.store else Response({"error": "Histórico persistente desativado ([history] enabled = false)."}, 404)
+
+
+@route("GET", "/api/fleet")
+def fleet_info(req):
+    from ..fleet import SCHEMA, identity
+    st = req.ctx.store
+    return {"identity": identity(), "schema": SCHEMA, "store": {"size": st.size(), "seq": int(st.get_meta("seq", "0"))} if st else None,
+            "server": None, "note": "Envio para um servidor central ainda não implementado (ver FROTA.md)."}
+
+
+@route("GET", "/api/fleet/export")
+def fleet_export(req):
+    from ..fleet import package
+    if (r := _no_store(req)):
+        return r
+    try:
+        return package(req.ctx.store, int(_q(req, "since", 0)), int(_q(req, "limit", 1000)))
+    except ValueError:
+        return Response({"error": "Parâmetros inválidos."}, 400)
+
+
+# ---------- histórico persistente ----------
+@route("GET", "/api/history/metrics")
+def history_metrics(req):
+    if (r := _no_store(req)):
+        return r
+    import time as _t
+    keys = [k for k in (_q(req, "keys", "") or "").split(",") if k] or None
+    try:
+        since = float(_q(req, "since", _t.time() - 86400))
+        until = float(_q(req, "until", _t.time()))
+        res = int(_q(req, "res")) if _q(req, "res") else None
+    except ValueError:
+        return Response({"error": "Parâmetros inválidos."}, 400)
+    if res not in (None, 60, 3600):
+        return Response({"error": "res deve ser 60 ou 3600."}, 400)
+    return {"series": req.ctx.store.metrics(keys, since, until, res), "keys": req.ctx.store.metric_keys()}
+
+
+@route("GET", "/api/history/hardware")
+def history_hardware(req):
+    if (r := _no_store(req)):
+        return r
+    return {"current": req.ctx.store.hardware_latest(), "history": req.ctx.store.hardware_history(100)}
+
+
+@route("GET", "/api/history/events")
+def history_events(req):
+    if (r := _no_store(req)):
+        return r
+    import time as _t
+    try:
+        since = float(_q(req, "since", _t.time() - 86400))
+        limit = int(_q(req, "limit", 300))
+    except ValueError:
+        return Response({"error": "Parâmetros inválidos."}, 400)
+    return {"events": req.ctx.store.events(since=since, family=_q(req, "family"), min_severity=_q(req, "min_severity"),
+                                           limit=limit)}
+
+
+# ---------- incidentes ----------
+def _no_inv(req):
+    return None if req.ctx.investigator else Response({"error": "Investigador de incidentes desativado."}, 404)
+
+
+@route("GET", "/api/incidents")
+def incidents_list(req):
+    if (r := _no_inv(req)):
+        return r
+    try:
+        before = float(_q(req, "before")) if _q(req, "before") else None
+        limit = int(_q(req, "limit", 100))
+    except ValueError:
+        return Response({"error": "Parâmetros inválidos."}, 400)
+    items = req.ctx.store.incidents(limit=limit, status=_q(req, "status"), before=before)
+    return {"items": items, "watcher": req.ctx.journal.status() if req.ctx.journal else None}
+
+
+@route("POST", "/api/incidents/investigate")
+def incident_investigate(req):
+    if (r := _no_inv(req)):
+        return r
+    import time as _t
+    b = req.json() or {}
+    try:
+        at = float(b.get("at") or _t.time())
+        before = float(b.get("before") or 300)
+        after = float(b.get("after") if b.get("after") is not None else 60)
+    except (TypeError, ValueError):
+        return Response({"error": "Parâmetros inválidos."}, 400)
+    if at < _t.time() - 90 * 86400:
+        return Response({"error": "Momento muito antigo."}, 400)
+    iid = req.ctx.investigator.investigate(at, before, after, str(b.get("note") or "")[:2000] or None)
+    return {"id": iid}
+
+
+@route("GET", "/api/incidents/<iid>")
+def incident_get(req, iid):
+    if (r := _no_inv(req)):
+        return r
+    try:
+        inc = req.ctx.store.incident(int(iid))
+    except ValueError:
+        inc = None
+    return inc or Response({"error": "Incidente não encontrado."}, 404)
+
+
+@route("POST", "/api/incidents/<iid>")
+def incident_update(req, iid):
+    if (r := _no_inv(req)):
+        return r
+    b = req.json() or {}
+    fields = {}
+    if b.get("status") in ("open", "resolved", "ignored"):
+        fields["status"] = b["status"]
+    if "note" in b:
+        fields["note"] = str(b["note"] or "")[:4000] or None
+    try:
+        iid = int(iid)
+    except ValueError:
+        return Response({"error": "Incidente inválido."}, 400)
+    if not req.ctx.store.incident(iid):
+        return Response({"error": "Incidente não encontrado."}, 404)
+    req.ctx.store.update_incident(iid, **fields)
+    return req.ctx.store.incident(iid)
+
+
+@route("POST", "/api/incidents/<iid>/delete")
+def incident_delete(req, iid):
+    if (r := _no_inv(req)):
+        return r
+    try:
+        ok = req.ctx.store.delete_incident(int(iid))
+    except ValueError:
+        ok = False
+    return {"ok": True} if ok else Response({"error": "Incidente não encontrado."}, 404)

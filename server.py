@@ -54,6 +54,31 @@ def set_password() -> None:
     print("Senha salva. Todas as sessões abertas foram encerradas.")
 
 
+def start_history(ctx, cfg) -> None:
+    """Banco persistente + inventário de hardware + métricas por minuto + vigia do log de eventos/incidentes."""
+    log = logging.getLogger("self-monitoring")
+    from sm import fleet
+    from sm.hwinfo import HardwareInventory
+    from sm.recorder import MetricsRecorder
+    from sm.store import Store
+    try:
+        ctx.store = Store(fleet.machine_id())
+    except Exception:  # noqa: BLE001
+        log.exception("banco de histórico indisponível; recursos de histórico desativados")
+        return
+    ctx.hwinv = HardwareInventory(ctx.store)
+    ctx.hwinv.start()
+    ctx.recorder = MetricsRecorder(ctx, ctx.store, cfg.history_days)
+    ctx.recorder.start()
+    if cfg.incidents:
+        from sm.eventlog import EventLogWatcher
+        from sm.incidents import Investigator
+        ctx.investigator = Investigator(ctx, ctx.store)
+        ctx.investigator.start()
+        ctx.journal = EventLogWatcher(ctx.store, ctx.investigator.on_event)
+        ctx.journal.start()
+
+
 def setup_logging(verbose: bool) -> None:
     level = logging.DEBUG if verbose else logging.INFO
     fmt = "%(asctime)s %(levelname)s %(name)s: %(message)s"
@@ -120,6 +145,8 @@ def main() -> None:
     ctx.alerts = Alerts(ctx)
     ctx.alerts.start()
     ctx.webhook = Webhook(ctx.alerts)
+    if cfg.history_enabled:
+        start_history(ctx, cfg)
     Sampler(ctx).start()
     srv = make_server(ctx)
 

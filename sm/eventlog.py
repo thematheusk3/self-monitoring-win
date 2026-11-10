@@ -35,6 +35,8 @@ RX_BOOT = re.compile(r"b\d{9,11}")
 MAX_GREP = 200
 FIRST_SINCE = 24 * 3600
 POLL = 3.0
+# o vigia lê avisos e piores e também os relatórios 1001 (tela azul é erro, mas o LiveKernelEvent da GPU é "informação")
+WATCH_LEVELS = "(Level>=1 and Level<=3) or EventID=1001"
 NS = "{http://schemas.microsoft.com/win/2004/08/events/event}"
 
 # ---------- wevtapi ----------
@@ -398,7 +400,7 @@ def service_logs(name: str, display: str | None, n: int = 80) -> list[dict]:
 
 # ---------- vigia ao vivo ----------
 class EventLogWatcher:
-    """Lê os eventos novos dos canais System e Application (avisos e piores) e passa pelas regras."""
+    """Lê os eventos novos dos canais System e Application (avisos e piores + relatórios 1001) e passa pelas regras."""
 
     def __init__(self, store, on_event) -> None:
         from . import rules
@@ -445,12 +447,12 @@ class EventLogWatcher:
         for ch in CHANNELS:
             last = self.last.get(ch, 0)
             if last:
-                xp = f"*[System[EventRecordID>{last} and Level<=3 and Level>=1]]"
+                xp = f"*[System[EventRecordID>{last} and ({WATCH_LEVELS})]]"
                 rows = _read(ch, xp, 2000, reverse=False)
                 # o EventRecordID avança com qualquer evento; guarda o maior visto, mesmo sem aviso
                 top = _read(ch, "*", 1, with_msg=False)
             else:
-                xp = _xpath(["Level<=3 and Level>=1", _time_cond(time.time() - FIRST_SINCE)])
+                xp = _xpath([f"({WATCH_LEVELS})", _time_cond(time.time() - FIRST_SINCE)])
                 rows = _read(ch, xp, 2000, reverse=False)
                 top = _read(ch, "*", 1, with_msg=False)
             if top and top[0]["record"] < last:      # o log foi limpo: recomeça

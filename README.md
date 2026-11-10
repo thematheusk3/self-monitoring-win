@@ -30,6 +30,8 @@ Backend em Python (biblioteca padrão + `psutil`, `pycaw` e `winrt`); o resto é
 - **Serviços**: todos os serviços do Windows com estado, consumo ao vivo, dependências, eventos do serviço e
   iniciar/parar/reiniciar.
 - **Logs**: busca no log de eventos do Windows (Sistema e Aplicativo) por texto, nível, fonte e período, com "ao vivo".
+- **Incidentes**: quando o driver de vídeo trava, um programa cai, há tela azul ou o PC desliga sem aviso, o painel monta
+  um relatório com linha do tempo, métricas, hipóteses e um texto pronto para colar numa IA.
 - **Sistema**: informações do PC e do monitor, **quem está acessando o painel** (aparelho, IP, nome na rede, MAC,
   última atividade, encerrar a sessão de outro aparelho, histórico de logins e senhas erradas), **registro de todas
   as ações feitas pelo painel** (quem, quando, o quê e se deu certo), **bloquear a tela**, **desligar/reiniciar** (com timer),
@@ -287,6 +289,35 @@ Igual à versão Linux: o painel junta o `logs\content_log.txt` (estado) e os `s
 (bytes baixados/total) da instalação da Steam (achada pelo registro). A velocidade é o tráfego do `steam.exe` no
 monitor de rede (sem ele, a variação dos bytes baixados). O cartão só aparece com algo na fila.
 
+## Incidentes
+
+O painel lê o log de eventos do Windows a cada 3 s (avisos e piores, mais os relatórios de erro 1001) e passa cada linha
+por regras (`sm/rules.py`). Abre um incidente quando:
+
+| O quê | Fonte no log de eventos |
+|---|---|
+| Driver de vídeo parou de responder / GPU reiniciada | `Display` 4101, `nvlddmkm` 13/14/153, `LiveKernelEvent` 141/117 |
+| Programa travou | `Application Error` 1000 (exceção, módulo com falha, versão) |
+| Tela azul | `WER-SystemErrorReporting` 1001 |
+| Memória virtual esgotada | `Resource-Exhaustion-Detector` 2004 |
+| Serviço caiu | `Service Control Manager` 7031/7034/7023/7024 |
+| Disco / NTFS | `disk` 7/11/51/153, `stornvme`/`storahci` 129, `Ntfs` 55/98/137/140 |
+| Erro de hardware | `WHEA-Logger` 1/18/20/46 |
+| Desligamento inesperado | `Kernel-Power` 41 e `EventLog` 6008, conferidos na partida |
+
+Gatilhos próximos (2 min) viram um incidente só; o mesmo programa caindo de novo em 15 min conta como repetição. O
+relatório junta a linha do tempo (5 min antes até 1 min depois), as métricas (ao vivo ou o resumo por minuto do banco),
+os processos e o jogo no momento, o programa ou serviço envolvido, as atualizações do Windows dos 3 dias anteriores e as
+mudanças de hardware/driver da semana, e lista hipóteses com confiança e o que verificar. "Copiar para IA" gera um
+Markdown com tudo isso. Na aba Logs, "Investigar este momento" faz o mesmo para qualquer linha.
+
+O Windows reenvia relatórios antigos de travamento da GPU (ex.: no logon); o painel lê a data do arquivo de despejo e
+não abre incidente por eles. Nos primeiros 2 min depois de ligar, avisos de drivers e serviços não abrem incidente
+(disco e hardware abrem).
+
+Tudo fica em `data\store.db` (SQLite): eventos e métricas por minuto por 30 dias, resumo por hora por 1 ano, incidentes
+e o inventário de hardware. Configuração em `[history]` (`enabled`, `days`, `incidents`).
+
 ## Alertas
 
 Aba **Alertas** (e o sino no topo). Regras: temperatura da CPU/GPU (sustentada por 30 s), disco quase cheio, memória,
@@ -473,6 +504,10 @@ saídas `DISPLAY1`, `DISPLAY2`...; `GET /api/processes/<pid>/inspect` traz `sign
 | GET | `/api/services?scope=system\|user` | serviços com estado e consumo; `GET /api/services/<nome>` detalhe e eventos |
 | POST | `/api/services/<nome>/start\|stop\|restart` | ações no serviço (`security.allow_services`) |
 | GET | `/api/logs?grep=&priority=4&unit=<fonte>&kernel=1&boot=0&since=&until=&limit=300&before=&after=` | log de eventos; `kernel=1` = só o canal Sistema; `before`/`after` = `cursor` de uma linha |
+| GET | `/api/incidents?status=open` | incidentes e estado do vigia; `GET /api/incidents/<id>` relatório; `POST /api/incidents/<id>` `{"status": "resolved", "note": "..."}`; `POST /api/incidents/<id>/delete` |
+| POST | `/api/incidents/investigate` | `{"at": epoch, "before": 300, "after": 60, "note": "..."}` investiga um momento |
+| GET | `/api/history/metrics?keys=cpu.temp&since=&until=&res=60\|3600` | métricas gravadas; `/api/history/hardware` inventário; `/api/history/events` eventos classificados |
+| GET | `/api/fleet` | identidade da máquina; `/api/fleet/export?since=<seq>` pacote para um servidor central (futuro) |
 | GET | `/api/logs/entry?cursor=` | todos os campos de um evento; `/api/logs/boots` inícios do Windows; `/api/logs/sources` fontes vistas |
 
 Autenticação: cookie de sessão obtido em `POST /login` (campo `password`). Troca de senha:

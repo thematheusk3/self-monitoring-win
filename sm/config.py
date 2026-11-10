@@ -42,6 +42,9 @@ class Config:
     presentmon: str = ""                 # caminho do PresentMon; vazio = procura em tools/
     # aviso de versão nova (consulta o GitHub; não instala nada)
     update_check: bool = True
+    history_enabled: bool = True         # banco data/store.db: eventos, incidentes, métricas, hardware
+    history_days: int = 30               # retenção de eventos e métricas por minuto (por hora: 1 ano)
+    incidents: bool = True               # vigia do log de eventos + investigador de incidentes
     update_repo: str = "thematheusk3/self-monitoring-win"
 
 
@@ -58,6 +61,7 @@ def load(path: Path | None = None) -> Config:
     sensors = raw.get("sensors", {})
     game = raw.get("game", {})
     update = raw.get("update", {})
+    history = raw.get("history", {})
     repo = str(update.get("repo", Config.update_repo))
     if not re.fullmatch(r"[\w.-]+/[\w.-]+", repo):
         raise ValueError(f'[update] repo inválido: "{repo}" (use o formato dono/repositorio)')
@@ -88,6 +92,9 @@ def load(path: Path | None = None) -> Config:
         lhm_url=str(sensors.get("lhm_url", Config.lhm_url)),
         presentmon=str(game.get("presentmon", Config.presentmon)),
         update_check=bool(update.get("check", True)),
+        history_enabled=bool(history.get("enabled", True)),
+        history_days=max(1, min(3650, int(history.get("days", Config.history_days)))),
+        incidents=bool(history.get("incidents", True)),
         update_repo=repo,
     )
     return cfg

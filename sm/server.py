@@ -325,5 +325,8 @@ class Server(ThreadingHTTPServer):
 
 
 def make_server(ctx: Context) -> Server:
-    handler = type("BoundHandler", (Handler,), {"ctx": ctx, "auth": Auth(), "audit": audit.Audit()})
+    aud = audit.Audit()
+    if getattr(ctx, "investigator", None):
+        ctx.investigator.audit = aud          # o relatório mostra as ações feitas pelo painel em volta do incidente
+    handler = type("BoundHandler", (Handler,), {"ctx": ctx, "auth": Auth(), "audit": aud})
     return Server((ctx.config.host, ctx.config.port), handler)

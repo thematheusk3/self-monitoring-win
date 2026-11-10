@@ -25,5 +25,15 @@ class Gpu(Collector):
                 s = {"id": g.pci, "name": g.name, "vendor": g.vendor, "error": str(e)}
             self.record(f"gpu.{i}.busy", s.get("busy"))
             self.record(f"gpu.{i}.temp", s.get("temp"))
+            for name in ("vram", "gtt"):          # % da memória da GPU (vazamento/estouro aparece nos incidentes)
+                m = s.get(name) or {}
+                if m.get("total") and m.get("used") is not None:
+                    self.record(f"gpu.{i}.{name}", 100 * m["used"] / m["total"])
+            if isinstance(s.get("power"), (int, float)):
+                self.record(f"gpu.{i}.power", s["power"])
+            clocks = s.get("clocks") or {}
+            clk = clocks.get("core") or clocks.get("graphics") or clocks.get("sclk")
+            if isinstance(clk, (int, float)):
+                self.record(f"gpu.{i}.clock", clk)
             out.append(s)
         return {"gpus": out}
