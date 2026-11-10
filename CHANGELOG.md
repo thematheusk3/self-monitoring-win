@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.14.1-win — 2026-11-09
+- **Mural e painel congelados com a leitura de FPS ligada**: o PresentMon às vezes manda latência ou tempo de CPU/GPU
+  infinito (quadro que não chegou à tela). O valor ia para o painel como `Infinity`, que o navegador recusa, e a página
+  parava de atualizar (FPS, tempo de jogo, tudo). Agora esses valores são descartados na leitura, o servidor troca
+  qualquer NaN/infinito por vazio antes de enviar, e a página ignora uma atualização ruim em vez de travar.
+- Mural: o relógio começa a andar na hora, sem esperar a configuração do Mural chegar do PC.
+
 ## 0.14.0-win — 2026-11-09
 Trazido da versão Linux (0.6.0):
 - **Incidentes**: o painel vigia o log de eventos do Windows o tempo todo e abre um incidente quando o driver de vídeo

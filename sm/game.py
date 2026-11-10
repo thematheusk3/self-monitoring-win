@@ -16,6 +16,7 @@ from __future__ import annotations
 import csv
 import json
 import logging
+import math
 import os
 import re
 import subprocess
@@ -328,7 +329,7 @@ def _num(row: list[str], i: int | None) -> float | None:
         v = float(row[i])
     except (ValueError, IndexError):
         return None
-    return v if v == v else None     # NaN
+    return v if math.isfinite(v) else None     # o PresentMon pode mandar NaN/inf (quadro não exibido)
 
 
 def _busy(ex: list[tuple], col: int) -> float | None:

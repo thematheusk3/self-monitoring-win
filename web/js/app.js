@@ -97,7 +97,8 @@ function connect() {
   es = new EventSource("/api/stream");
   es.onopen = renderLive;
   es.onmessage = e => {
-    const snap = JSON.parse(e.data);
+    let snap;
+    try { snap = JSON.parse(e.data); } catch (err) { console.error("atualização inválida ignorada", err); return; }
     lastRecv = Date.now() / 1000;
     lastTs = snap.ts || lastRecv;
     app.pushSnapshot(snap);

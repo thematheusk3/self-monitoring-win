@@ -432,11 +432,13 @@ export async function open(a, { fullscreen = false, exit = () => {} } = {}) {
   document.body.classList.add("mural-open");
   if (fullscreen) el.requestFullscreen?.().catch(() => {});
   scene = null; lastSeq = null; lastGame = undefined; lastTrack = undefined; paletteKey = null;
+  clockTick();
+  const tick = setInterval(clockTick, 1000);       // o relógio não espera a configuração chegar do PC
   await refreshConf();
-  if (el.hidden) return;
+  if (el.hidden) { clearInterval(tick); return; }
   if (app.snapshot) paint(app.snapshot);
   off = app.onSnapshot(paint);
-  timers = [setInterval(clockTick, 1000), setInterval(refreshConf, CONF_EVERY), setInterval(() => {
+  timers = [tick, setInterval(refreshConf, CONF_EVERY), setInterval(() => {
     const r = () => Math.round(Math.random() * 16 - 8);
     $(".mural-scene", el).style.translate = `${r()}px ${r()}px`;
     everyMinute();

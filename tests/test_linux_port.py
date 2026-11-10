@@ -79,6 +79,23 @@ class GameExtrasTest(unittest.TestCase):
             game.running_steam_appid, game.STATE_FILE = orig
 
 
+class NonFiniteTest(unittest.TestCase):
+    """NaN/infinito no JSON congelava a página inteira (o navegador recusa e para de atualizar)."""
+
+    def test_presentmon_values(self):
+        self.assertIsNone(game._num(["inf"], 0))
+        self.assertIsNone(game._num(["NaN"], 0))
+        self.assertIsNone(game._num(["1e309"], 0))
+        self.assertEqual(game._num(["8.5"], 0), 8.5)
+
+    def test_dumps_never_emits_nan(self):
+        import json
+        from sm.server import dumps
+        out = dumps({"a": float("inf"), "b": [float("nan"), 1.5], "c": {"d": -float("inf")}})
+        self.assertEqual(json.loads(out), {"a": None, "b": [None, 1.5], "c": {"d": None}})
+        self.assertNotIn("Infinity", out)
+
+
 class FanHintTest(unittest.TestCase):
     def test_hint(self):
         self.assertIsNone(fan_hint([], [{"rpm": 900}], "MSI"))

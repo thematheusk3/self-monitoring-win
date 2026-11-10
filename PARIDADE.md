@@ -10,7 +10,7 @@ backend de cada sistema.
 **Regra:** ao implementar algo novo em uma versão, registre aqui se dá para levar para a outra (e como), ou se é
 impossível (e por quê). Quando for portado, mova a linha para "Já equalizado" e anote a versão.
 
-Situação em: versão Linux 0.6.2, versão Windows 0.14.0-win.
+Situação em: versão Linux 0.6.2, versão Windows 0.14.1-win.
 
 ## 1. Só no Windows: dá para levar ao Linux
 
@@ -22,6 +22,11 @@ Tudo o que valia a pena foi levado ao Linux na 0.5.0 (ver "Já equalizado"). Os 
 histórico do git (commit `75c7d6c` do repositório Linux), se precisar repetir algo parecido.
 
 Cuidados ao mexer no frontend, que custaram retrabalho no Windows e valem nos dois:
+
+- Nunca mande NaN/infinito no JSON: o Python escreve `NaN`/`Infinity`, o `JSON.parse` do navegador recusa e a página
+  inteira para de atualizar (0.14.1-win, latência infinita do PresentMon). No Windows o `sm/server.py` usa `dumps()`, que
+  troca por `null`, e o `app.js` ignora uma atualização inválida. **Vale levar ao Linux** (o MangoHud também pode mandar
+  valores estranhos), junto com o relógio do Mural que não espera o `/api/mural`.
 
 - Não use `light-dark()` nos tokens de cor: o tema escuro não aplicava. Cada cor tem regras explícitas para escuro,
   `[data-theme="light"]` e `prefers-color-scheme`.

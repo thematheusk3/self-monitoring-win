@@ -4,6 +4,7 @@ from __future__ import annotations
 import ipaddress
 import json
 import logging
+import math
 import mimetypes
 import threading
 import time
@@ -52,7 +53,7 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(body)
 
     def _json(self, obj, status: int = 200, headers: dict | None = None) -> None:
-        self._send(status, json.dumps(obj, separators=(",", ":")).encode(), "application/json", headers)
+        self._send(status, dumps(obj).encode(), "application/json", headers)
 
     def _session_id(self) -> str | None:
         c = SimpleCookie(self.headers.get("Cookie", ""))
@@ -305,11 +306,31 @@ class Handler(BaseHTTPRequestHandler):
                     self.wfile.write(b": ping\n\n")
                 else:
                     last = self.ctx.seq
-                    data = json.dumps(self.ctx.snapshot(), separators=(",", ":"))
+                    data = dumps(self.ctx.snapshot())
                     self.wfile.write(f"data: {data}\n\n".encode())
                 self.wfile.flush()
         except (BrokenPipeError, ConnectionResetError, OSError):
             pass
+
+
+def _finite(o):
+    if isinstance(o, float):
+        return o if math.isfinite(o) else None
+    if isinstance(o, dict):
+        return {k: _finite(v) for k, v in o.items()}
+    if isinstance(o, (list, tuple)):
+        return [_finite(v) for v in o]
+    return o
+
+
+def dumps(obj) -> str:
+    """JSON sempre válido para o navegador: NaN e infinito (que o Python escreve como NaN/Infinity e o JSON.parse
+    recusa, congelando a página) viram null."""
+    try:
+        return json.dumps(obj, separators=(",", ":"), allow_nan=False)
+    except ValueError:
+        log.warning("valor NaN/infinito na resposta; trocado por null")
+        return json.dumps(_finite(obj), separators=(",", ":"))
 
 
 class Server(ThreadingHTTPServer):
