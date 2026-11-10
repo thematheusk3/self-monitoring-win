@@ -41,6 +41,7 @@ function mount(el, a) {
         <label class="check"><input type="checkbox" data-pref="notifications"> Mostrar notificações no Mural</label>
         <label class="check"><input type="checkbox" data-pref="takeover"> Alertas críticos ocupam a tela inteira</label>
         <label class="check"><input type="checkbox" data-pref="context"> Avisar quando um jogo abrir ou a música mudar</label>
+        <label class="check" title="Busca no LRCLIB (lrclib.net) só o título, artista, álbum e duração da música"><input type="checkbox" data-pref="lyrics"> Letra sincronizada na tela de Música (LRCLIB)</label>
       </div>
     </article>
     <article class="card span-all">

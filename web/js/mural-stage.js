@@ -179,6 +179,7 @@ const SCENES = {
         <img class="mural-art" data-art alt="">
         <div class="mural-info">
           <h1 data-mtitle></h1><p class="mural-artist" data-artist></p><p class="mural-dim" data-album></p>
+          <div class="mural-lyrics" data-lyrics hidden aria-live="off"><p data-l="0"></p><p data-l="1"></p><p data-l="2"></p></div>
           <div class="mural-prog" data-prog><i></i></div><p class="mural-dim num" data-mtime></p>
           <div class="mural-btns" data-btns></div>
           <div class="mural-vol" data-mvol hidden></div>
@@ -286,6 +287,52 @@ function paintMusic(d, ts) {
     btns.innerHTML = mediaButtons(m, { seek: true, extras: true });
   }
   if (app.info.features.control) appVolume(m.id);
+  lyricsFor(m, ts);
+}
+
+// ---------- letra sincronizada (LRCLIB, pelo backend) ----------
+let lyr = { key: null, data: null, m: null, ts: 0, recv: 0, timer: null, line: -2 };
+
+async function lyricsFor(m, ts) {
+  lyr.m = m; lyr.ts = ts; lyr.recv = performance.now();
+  const key = `${m.id}|${m.title}|${m.artist}`;
+  if (!lyr.timer) lyr.timer = setInterval(lyricsTick, 250);
+  if (key === lyr.key) {          // a cena pode ter sido refeita (saiu e voltou para Música)
+    if (lyr.data && $("[data-lyrics]", el)?.hidden) { lyr.line = -2; lyricsTick(); }
+    return;
+  }
+  lyr.key = key; lyr.data = null; lyr.line = -2;
+  paintLyrics();
+  if (conf.lyrics === false || !m.length) return;
+  try {
+    const r = await app.api(`/api/media/lyrics?player=${encodeURIComponent(m.id)}`);
+    if (lyr.key === key && r.synced?.length) { lyr.data = r.synced; lyricsTick(); }
+  } catch { /* sem letra */ }
+}
+
+function lyricsTick() {
+  if (conf?.lyrics === false && lyr.key) { lyr.key = null; lyr.data = null; paintLyrics(); return; }
+  if (scene !== "music" || !lyr.data || !lyr.m) return;
+  const pos = livePos(lyr.m, lyr.ts + (performance.now() - lyr.recv) / 1000) + 0.15;   // verso um tiquinho antes
+  let i = -1;
+  for (let k = 0; k < lyr.data.length && lyr.data[k][0] <= pos; k++) i = k;
+  if (i !== lyr.line) { lyr.line = i; paintLyrics(); }
+}
+
+function paintLyrics() {
+  const box = $("[data-lyrics]", el);
+  if (!box) return;
+  const on = !!lyr.data;
+  box.hidden = !on;
+  $(".mural-track", el)?.classList.toggle("has-lyrics", on);
+  if (!on) return;
+  const v = j => (j < 0 ? "" : j >= lyr.data.length ? "" : lyr.data[j][1] || "♪");
+  const i = lyr.line;
+  const ps = box.children;
+  ps[0].textContent = v(i - 1);
+  ps[1].textContent = i < 0 ? (lyr.data[0]?.[0] > 3 ? "♪" : "") : v(i);
+  ps[2].textContent = v(i + 1);
+  box.classList.remove("step"); void box.offsetWidth; box.classList.add("step");
 }
 
 // ---------- volume do app que está tocando (o mesmo do Mixer de volume; não mexe no volume geral) ----------
@@ -511,7 +558,10 @@ export async function open(a, { fullscreen = false, exit = () => {} } = {}) {
   wakeUp();
 }
 
+function stopLyrics() { clearInterval(lyr.timer); lyr = { key: null, data: null, m: null, ts: 0, recv: 0, timer: null, line: -2 }; }
+
 export function close() {
+  stopLyrics();
   if (!el || el.hidden) return;
   el.hidden = true;
   document.body.classList.remove("mural-open");

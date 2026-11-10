@@ -111,7 +111,7 @@ class Mural:
             c = {}
         return {"location": c.get("location"), "mode": c.get("mode") if c.get("mode") in MODES else "auto",
                 "notifications": bool(c.get("notifications", True)), "takeover": bool(c.get("takeover", True)),
-                "context": bool(c.get("context", True)),
+                "context": bool(c.get("context", True)), "lyrics": bool(c.get("lyrics", True)),
                 "background": c.get("background") if c.get("background") in BACKGROUNDS else "sky",
                 "background_v": int(c.get("background_v") or 0),
                 "game": {**GAME_DEFAULTS, **{k: bool(v) for k, v in (c.get("game") or {}).items() if k in GAME_DEFAULTS}},
@@ -122,7 +122,7 @@ class Mural:
 
     def status(self) -> dict:
         with self.lock:
-            out = {k: self.conf[k] for k in ("location", "mode", "notifications", "takeover", "context", "background", "background_v", "game")}
+            out = {k: self.conf[k] for k in ("location", "mode", "notifications", "takeover", "context", "lyrics", "background", "background_v", "game")}
         return {**out, "weather": self.weather(), "weather_error": self.weather_error, "weather_at": self.weather_at or None}
 
     def update(self, body: dict) -> dict:
@@ -138,7 +138,7 @@ class Mural:
                 if body["background"] == "photo" and not self.conf["background_v"]:
                     raise ValueError("Envie uma imagem primeiro.")
                 self.conf["background"] = body["background"]
-            for k in ("notifications", "takeover", "context"):
+            for k in ("notifications", "takeover", "context", "lyrics"):
                 if k in body:
                     self.conf[k] = bool(body[k])
             for k, v in (body.get("game") or {}).items():

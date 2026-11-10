@@ -720,6 +720,21 @@ def media_audio(req):
         return Response({"error": str(e)}, e.status)
 
 
+@route("GET", "/api/media/lyrics")
+def media_lyrics(req):
+    """Letra sincronizada da faixa do player (LRCLIB), se o Mural estiver com a opção ligada."""
+    from ..lyrics import lyrics
+    if not req.ctx.media:
+        return Response({"error": "indisponível"}, 404)
+    if req.ctx.mural and not req.ctx.mural.status().get("lyrics", True):
+        return {"found": False, "synced": [], "plain": None, "off": True}
+    pid = req.query.get("player", [""])[0]
+    p = next((x for x in req.ctx.media.players if x["id"] == pid), None)
+    if not p:
+        return Response({"error": "Player não encontrado (fechou?)."}, 404)
+    return {**lyrics(p.get("title"), p.get("artist"), p.get("album"), p.get("length")), "track": f"{p.get('title')}|{p.get('artist')}"}
+
+
 @route("GET", "/api/media/art")
 def media_art(req):
     from ..media import MediaError

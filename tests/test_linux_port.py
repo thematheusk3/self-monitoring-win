@@ -112,6 +112,26 @@ class MediaAudioTest(unittest.TestCase):
         self.assertIsNone(match_session("VLC.exe", apps))
 
 
+class LyricsTest(unittest.TestCase):
+    def test_parse_lrc(self):
+        from sm.lyrics import parse_lrc
+        out = parse_lrc("[ar: x]
+[00:12.50]Verso dois
+[00:01.00][01:00.25]Refrão
+[00:20.00]
+sem tempo")
+        self.assertEqual(out, [[1.0, "Refrão"], [12.5, "Verso dois"], [20.0, ""], [60.25, "Refrão"]])
+
+    def test_pick_by_duration(self):
+        from sm.lyrics import RX_EXTRA, _pick
+        items = [{"id": 1, "duration": 200, "syncedLyrics": "[00:01.00]a"}, {"id": 2, "duration": 296, "syncedLyrics": "[00:01.00]b"},
+                 {"id": 3, "duration": 297, "syncedLyrics": None}]
+        self.assertEqual(_pick(items, 297)["id"], 2)
+        self.assertIsNone(_pick(items, 100))
+        self.assertEqual(RX_EXTRA.sub("", "Bohemian Rhapsody - Remastered 2011"), "Bohemian Rhapsody")
+        self.assertEqual(RX_EXTRA.sub("", "Kings Never Die (feat. Gwen Stefani)"), "Kings Never Die")
+
+
 class FanHintTest(unittest.TestCase):
     def test_hint(self):
         self.assertIsNone(fan_hint([], [{"rpm": 900}], "MSI"))

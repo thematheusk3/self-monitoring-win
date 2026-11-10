@@ -23,7 +23,8 @@ Backend em Python (biblioteca padrão + `psutil`, `pycaw` e `winrt`); o resto é
 - **Alertas**: regras configuráveis com aviso no painel, na tela do PC (notificação do Windows) e no celular (ntfy).
 - **Jogo/FPS** (na Visão geral): jogo da Steam aberto e FPS via PresentMon.
 - **No PC agora** (na Visão geral): janela em foco e o que está tocando (Spotify, navegador, VLC...), com controles.
-  No Mural e em Controles > Áudio também há aleatório, repetir e ±10 s; no Mural, o volume só do app que está tocando.
+  No Mural e em Controles > Áudio também há aleatório, repetir e ±10 s; no Mural, o volume só do app que está tocando
+  e a letra sincronizada (LRCLIB).
 - **Downloads Steam** (na Visão geral, só quando há algo baixando): progresso, velocidade e tempo restante.
 - **Apps**: abre pelo celular, na tela do PC, qualquer item do menu Iniciar (programas, apps da Loja, jogos da Steam).
 - **Rede**: conexões por programa (para onde, quanto envia/recebe), conexões encerradas e portas abertas.
@@ -495,6 +496,7 @@ saídas `DISPLAY1`, `DISPLAY2`...; `GET /api/processes/<pid>/inspect` traz `sign
 | GET/POST | `/api/game` | jogo atual e FPS; `{"fps_enabled": true}` liga o PresentMon |
 | POST | `/api/game/not-game` | `{"key": "exe:tabby.exe", "name": "Tabby", "ignored": true}`; `"ignored": false` desfaz |
 | POST | `/api/media` | `{"player": "Spotify.exe", "op": "play_pause"\|"next"\|"previous"\|"seek"\|"shuffle"\|"repeat", "offset": 10}` |
+| GET | `/api/media/lyrics?player=Spotify.exe` | letra sincronizada da faixa (`synced: [[segundos, verso], ...]`, do LRCLIB; vazio se o Mural estiver com a letra desligada) |
 | GET | `/api/media/audio?player=Spotify.exe` | sessão de áudio do player (volume do app); mudar com `POST /api/audio` `{"op": "volume", "kind": "app", "index", "volume"}` |
 | GET/POST | `/api/audio` | estado; `{"op": "set_default"\|"volume"\|"mute"\|"move", "kind": "sink"\|"source"\|"app"\|"rec", ...}` |
 | GET | `/api/display` | monitores e modos; `POST /api/display/mode` `{"output":"DISPLAY1","mode":"1920x1080@144"}` ou `{"op":"confirm"\|"revert"}` |

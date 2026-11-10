@@ -281,3 +281,14 @@ body.mural-open { overflow: hidden; }
 .note-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .al-icon { display: inline-grid; vertical-align: -.1em; margin-right: 4px; }
 .al-source { display: block; font-size: 12.5px; }
+
+/* letra sincronizada: verso atual em destaque, o anterior e o próximo apagados */
+.mural-track.has-lyrics h1 { font-size: clamp(26px, 5vmin, 58px); }
+.mural-track.has-lyrics .mural-artist { font-size: clamp(16px, 3vmin, 32px); }
+.mural-lyrics { margin-top: clamp(12px, 3vmin, 30px); display: grid; gap: .35em; min-height: 6.2em; }
+.mural-lyrics p { margin: 0; line-height: 1.2; overflow-wrap: anywhere; transition: opacity .25s; }
+.mural-lyrics [data-l="0"], .mural-lyrics [data-l="2"] { font-size: clamp(15px, 2.6vmin, 28px); color: rgb(255 255 255 / .5); }
+.mural-lyrics [data-l="1"] { font-size: clamp(22px, 4.4vmin, 50px); font-weight: 700; color: color-mix(in srgb, var(--m-accent) 35%, white); }
+.mural-lyrics.step [data-l="1"] { animation: mural-verse .35s var(--ease, ease-out); }
+@keyframes mural-verse { from { opacity: .3; transform: translateY(.25em); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .mural-lyrics.step [data-l="1"] { animation: none; } }

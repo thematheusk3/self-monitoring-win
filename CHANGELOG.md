@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.16.0-win — 2026-11-09
+- **Letra sincronizada no Mural > Música**: o verso que está sendo cantado aparece em destaque, com o anterior e o
+  próximo, acompanhando a posição da música (a mesma da barra de progresso). Funciona com Spotify e qualquer player
+  que informe a posição ao Windows. A letra vem do **LRCLIB** (lrclib.net, aberto e gratuito, sem conta): só título,
+  artista, álbum e duração saem do PC. Sem letra sincronizada para a faixa, nada aparece. Desliga em Mural >
+  "Letra sincronizada na tela de Música".
+
 ## 0.15.0-win — 2026-11-09
 - **Mural > Música com mais controles**: aleatório, repetir (desligado → playlist → esta faixa), voltar/avançar 10 s e
   **volume do app que está tocando**, com mudo. É o volume do próprio app no Mixer de volume do Windows (ex.: só o
