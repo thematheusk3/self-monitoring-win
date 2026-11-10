@@ -115,11 +115,7 @@ class MediaAudioTest(unittest.TestCase):
 class LyricsTest(unittest.TestCase):
     def test_parse_lrc(self):
         from sm.lyrics import parse_lrc
-        out = parse_lrc("[ar: x]
-[00:12.50]Verso dois
-[00:01.00][01:00.25]Refrão
-[00:20.00]
-sem tempo")
+        out = parse_lrc("[ar: x]\n[00:12.50]Verso dois\n[00:01.00][01:00.25]Refrão\n[00:20.00]\nsem tempo")
         self.assertEqual(out, [[1.0, "Refrão"], [12.5, "Verso dois"], [20.0, ""], [60.25, "Refrão"]])
 
     def test_pick_by_duration(self):
