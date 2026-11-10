@@ -10,6 +10,11 @@ import { AURORA, BACKDROPS, Backdrop } from "./mural-backdrop.js";
 import { currentPalette } from "./theme.js";
 
 const MODES = [["auto", "Automático", "arrow-clockwise"], ["home", "Início", "house"], ["game", "Jogo", "game-controller"], ["music", "Música", "music-note"]];
+// Cinema: a tela vira um quadro de filme, com faixas pretas em cima e embaixo; a letra da música entra como legenda.
+// Painel: tudo de uma vez (relógio, clima, jogo, música e o PC), para um tablet ou monitor de canto.
+// Clássico: o layout das versões anteriores.
+export const LAYOUTS = [["cinema", "Cinema"], ["painel", "Painel"], ["classico", "Clássico"]];
+const layout = () => (LAYOUTS.some(([id]) => id === conf?.layout) ? conf.layout : "cinema");
 const IDLE = 4000;              // ms até esconder os controles
 const CONF_EVERY = 5 * 60000;   // clima e preferências
 const SHIFT_EVERY = 60000;      // desloca o conteúdo para não marcar telas OLED
@@ -85,13 +90,13 @@ function paintHome() {
 }
 
 function coverFailed() {
-  if (scene !== "home" || el.dataset.backdrop !== "games") return;
+  if ((scene !== "home" && scene !== "board") || el.dataset.backdrop !== "games") return;
   covers.splice(coverAt % covers.length, 1);        // jogo sem arte de fundo: sai do rodízio
   paintHome();
 }
 
 function everyMinute() {
-  if (scene !== "home") return;
+  if (scene !== "home" && scene !== "board") return;
   if (conf.background === "games" && covers?.length && ++minutes % COVER_MINUTES === 0) coverAt++;
   paintHome();                                       // o céu muda ao longo do dia
 }
@@ -134,6 +139,18 @@ function weatherBlock() {
     </section>`;
 }
 
+/** Clima na faixa de baixo do Cinema: agora + próximos dias, em linha. */
+function weatherStrip() {
+  if (!conf.location) return `<button class="btn btn-primary" data-pick-city>Escolher cidade para ver o clima</button>`;
+  const w = conf.weather;
+  if (!w) return `<p class="mural-dim">${esc(conf.weather_error || "Buscando o clima…")}</p>`;
+  const [today, ...rest] = w.days;
+  return `<div class="cine-w-now">${ic(w.icon)}<b>${deg(w.temp)}</b>
+      <span><em>${esc(conf.location.name)}</em>${esc(w.label)}${today ? ` · ${deg(today.max)} / ${deg(today.min)}` : ""}</span></div>
+    <ul class="cine-days">${rest.map(d => `<li><span>${new Date(`${d.date}T12:00`).toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "")}</span>
+      ${ic(d.icon)}<b>${deg(d.max)}</b></li>`).join("")}</ul>`;
+}
+
 /** Anel de 0 a 100: mostra o nível de relance, sem precisar ler o número. */
 function ring(value, label, suffix = "%") {
   const v = Math.max(0, Math.min(100, value ?? 0));
@@ -146,6 +163,7 @@ const cell = (label, value) => `<div class="mural-stat"><b>${value}</b><span>${l
 
 // ---------- escolha da cena ----------
 function pick(d) {
+  if (layout() === "painel") return "board";
   const game = d.game?.game, media = d.media?.current, mode = conf.mode;
   if (mode === "game") return game ? "game" : "home";
   if (mode === "music") return media ? "music" : "home";
@@ -188,24 +206,82 @@ const SCENES = {
     </div>`,
 };
 
+// Mesmos ganchos (data-*) dos modelos clássicos: paintGame/paintMusic servem aos três layouts.
+const CINEMA = {
+  home: () => `<div class="cine cine-home">
+      <header class="cine-bar cine-top"><span class="cine-date" data-date></span><span class="cine-empty" data-empty></span></header>
+      <div class="cine-frame"><time class="cine-clock" data-time></time></div>
+      <footer class="cine-bar cine-bottom cine-weather" data-weather></footer>
+    </div>`,
+  game: () => `<div class="cine cine-game">
+      <header class="cine-bar cine-top">
+        <div class="cine-title mural-title" data-title></div>
+        <div class="cine-right"><div class="cine-player mural-player" data-player hidden></div><time data-time></time><span data-mini></span></div>
+      </header>
+      <div class="cine-frame"></div>
+      <footer class="cine-bar cine-bottom">
+        <div class="mural-fps" data-fps-box hidden><div class="mural-fps-num"><b data-fps></b><span>FPS</span></div><div class="spark" data-spark></div></div>
+        <div class="mural-stats" data-stats></div>
+      </footer>
+    </div>`,
+  music: () => `<div class="cine cine-music">
+      <header class="cine-bar cine-top">
+        <div class="cine-card"><h1 data-mtitle></h1><p><span data-artist></span></p></div>
+        <div class="cine-right"><time data-time></time><span data-mini></span></div>
+      </header>
+      <div class="cine-frame">
+        <img class="cine-art" data-art alt="">
+        <div class="cine-ctl"><div class="mural-btns" data-btns></div><div class="mural-vol" data-mvol hidden></div></div>
+        <div class="cine-prog mural-prog" data-prog><i></i></div>
+      </div>
+      <footer class="cine-bar cine-bottom">
+        <div class="cine-subs mural-lyrics" data-lyrics hidden aria-live="off"><p data-l="0"></p><p data-l="1"></p><p data-l="2"></p></div>
+        <p class="cine-meta"><span data-album></span><span class="num" data-mtime></span></p>
+      </footer>
+    </div>`,
+};
+const BOARD = () => `<div class="board">
+    <section class="board-clock"><time data-time></time><p data-date></p></section>
+    <section class="board-weather" data-weather></section>
+    <section class="board-tile board-game" data-board-game hidden>
+      <img class="board-game-art" data-game-art alt="">
+      <div class="board-game-in">
+        <div class="mural-title" data-title></div>
+        <div class="mural-fps" data-fps-box hidden><div class="mural-fps-num"><b data-fps></b><span>FPS</span></div><div class="spark" data-spark></div></div>
+        <div class="mural-stats" data-stats></div>
+      </div>
+    </section>
+    <section class="board-tile board-music" data-board-music hidden>
+      <img class="board-art" data-art alt="">
+      <div class="board-music-in">
+        <h2 data-mtitle></h2><p class="board-artist"><span data-artist></span></p><p class="mural-dim" data-album></p>
+        <div class="board-lyric mural-lyrics" data-lyrics hidden aria-live="off"><p data-l="0"></p><p data-l="1"></p><p data-l="2"></p></div>
+        <div class="mural-prog" data-prog><i></i></div><p class="mural-dim num" data-mtime></p>
+        <div class="mural-btns" data-btns></div><div class="mural-vol" data-mvol hidden></div>
+      </div>
+    </section>
+    <section class="board-tile board-pc" data-board-pc></section>
+  </div>`;
+
 function enter(name) {
   scene = name;
   el.dataset.scene = name;
+  el.dataset.layout = layout();
   fpsSpark = null;
-  if (name !== "home") { backdrop.hide(); delete el.dataset.backdrop; }
-  $("[data-bg]", el).hidden = name !== "home";
-  $(".mural-scene", el).innerHTML = SCENES[name]();
+  if (name !== "home" && name !== "board") { backdrop.hide(); delete el.dataset.backdrop; }
+  $("[data-bg]", el).hidden = name !== "home" && name !== "board";
+  $(".mural-scene", el).innerHTML = name === "board" ? BOARD() : layout() === "cinema" ? CINEMA[name]() : SCENES[name]();
   clockTick();
   paintConf();
 }
 
 function paintConf() {
   const w = $("[data-weather]", el);
-  if (w) w.innerHTML = weatherBlock();
+  if (w) w.innerHTML = layout() === "cinema" && scene === "home" ? weatherStrip() : weatherBlock();
   $$("[data-mini]", el).forEach(n => { n.innerHTML = weatherMini(); });
   $$("[data-mode]", el).forEach(b => b.setAttribute("aria-pressed", b.dataset.mode === conf.mode));
   movePill();
-  if (scene === "home") paintHome();
+  if (scene === "home" || scene === "board") paintHome();
 }
 
 /** O destaque desliza até o modo escolhido: mostra de onde veio e para onde foi. */
@@ -222,8 +298,9 @@ function paintGame(d) {
   if (t.dataset.key !== game.key) {
     t.dataset.key = game.key;
     const src = artUrl(game.key);
-    setBackground(src);
-    paletteOf(src);
+    const tileArt = $("[data-game-art]", el);
+    if (tileArt) tileArt.src = src;
+    else { setBackground(src); paletteOf(src); }
     const fallback = `<h1>${esc(game.name)}</h1>`;
     t.innerHTML = game.appid ? `<img class="mural-logo" src="${artUrl(game.key, "logo")}" alt="${esc(game.name)}">` : fallback;
     const logo = $("img", t);
@@ -253,7 +330,8 @@ function paintGame(d) {
   if (o.vram && gpu?.vram?.total) s.push(cell("VRAM", bytes(gpu.vram.used)));
   $("[data-stats]", el).innerHTML = s.join("");
 
-  const p = $("[data-player]", el), m = d.media?.current;
+  const p = $("div[data-player]", el), m = d.media?.current;
+  if (!p) return;
   const show = !!(o.music && m && m.status === "playing");
   p.hidden = !show;
   if (show) {
@@ -266,8 +344,10 @@ function paintGame(d) {
 function paintMusic(d, ts) {
   const m = d.media.current;
   const src = artSrc(m);
-  setBackground(src);
-  if (src) paletteOf(src);
+  if (scene !== "board") {
+    setBackground(src);
+    if (src) paletteOf(src);
+  }
   const art = $("[data-art]", el);
   art.hidden = !src;
   if (src && art.getAttribute("src") !== src) { art.src = src; art.onerror = () => { art.hidden = true; }; }
@@ -312,7 +392,7 @@ async function lyricsFor(m, ts) {
 
 function lyricsTick() {
   if (conf?.lyrics === false && lyr.key) { lyr.key = null; lyr.data = null; paintLyrics(); return; }
-  if (scene !== "music" || !lyr.data || !lyr.m) return;
+  if ((scene !== "music" && scene !== "board") || !lyr.data || !lyr.m) return;
   const pos = livePos(lyr.m, lyr.ts + (performance.now() - lyr.recv) / 1000) + 0.15;   // verso um tiquinho antes
   let i = -1;
   for (let k = 0; k < lyr.data.length && lyr.data[k][0] <= pos; k++) i = k;
@@ -391,6 +471,26 @@ async function toggleAppMute() {
   } catch { appVolume(vol.player, true); }
 }
 
+/** Painel: tudo de uma vez. Jogo e música só aparecem quando existem; o PC está sempre lá. */
+function paintBoard(d, ts) {
+  const board = $(".board", el), game = d.game?.game, m = d.media?.current;
+  const g = $("[data-board-game]", el), mu = $("[data-board-music]", el);
+  g.hidden = !game;
+  mu.hidden = !(m && m.title);
+  board.dataset.has = `${game ? "g" : ""}${m && m.title ? "m" : ""}` || "none";
+  if (game) paintGame(d);
+  else { const t = $("[data-title]", el); if (t) t.dataset.key = ""; }
+  if (m && m.title) paintMusic(d, ts);
+  const gpu = (d.gpu?.gpus || []).find(x => !x.integrated) || d.gpu?.gpus?.[0];
+  const pc = [];
+  if (d.cpu) pc.push(ring(d.cpu.total, "CPU"));
+  if (gpu?.busy != null) pc.push(ring(gpu.busy, "GPU"));
+  if (d.memory) pc.push(ring(d.memory.percent, "RAM"));
+  const temps = [d.cpu?.temp != null && cell("CPU", `${Math.round(d.cpu.temp)} °C`), gpu?.temp != null && cell("GPU", `${Math.round(gpu.temp)} °C`),
+    gpu?.vram?.total && cell("VRAM", bytes(gpu.vram.used))].filter(Boolean);
+  $("[data-board-pc]", el).innerHTML = `<div class="board-rings">${pc.join("")}</div><div class="mural-stats">${temps.join("")}</div>`;
+}
+
 // ---------- eventos do PC ----------
 async function alertEvents(a) {
   const seq = a?.seq ?? 0;
@@ -427,6 +527,7 @@ function paint(snap) {
   if (next !== scene) enter(next);
   if (next === "game") paintGame(d);
   else if (next === "music") paintMusic(d, snap.ts);
+  else if (next === "board") paintBoard(d, snap.ts);
   else {
     const e = $("[data-empty]", el);
     if (e) e.textContent = emptyNote(d);
@@ -452,18 +553,29 @@ async function setMode(mode) {
   try { conf = await app.api("/api/mural", { method: "POST", body: { mode } }); } catch { /* vale nesta tela até recarregar */ }
 }
 
+async function nextLayout() {
+  const [id, name] = LAYOUTS[(LAYOUTS.findIndex(([k]) => k === layout()) + 1) % LAYOUTS.length];
+  conf = { ...conf, layout: id };
+  scene = null;
+  if (app.snapshot) paint(app.snapshot);
+  deck.push({ id: `layout-${id}`, kind: "toast", level: "info", title: `Layout ${name}`, icon: "squares-four", seconds: 3 });
+  try { conf = await app.api("/api/mural", { method: "POST", body: { layout: id } }); } catch { /* vale nesta tela até recarregar */ }
+}
+
 async function nextBackground() {
   const list = BACKDROPS.filter(([id]) => id !== "photo" || conf.background_v);
   const [id, name] = list[(list.findIndex(([k]) => k === conf.background) + 1) % list.length];
   conf = { ...conf, background: id };
-  if (scene === "home") paintHome();
+  if (scene === "home" || scene === "board") paintHome();
   deck.push({ id: `bg-${id}`, kind: "toast", level: "info", title: name, icon: "image", seconds: 3 });
   try { conf = await app.api("/api/mural", { method: "POST", body: { background: id } }); } catch { /* vale nesta tela até recarregar */ }
 }
 
 async function refreshConf() {
   try {
+    const before = layout();
     conf = await app.api("/api/mural");
+    if (layout() !== before) { scene = null; if (app.snapshot) paint(app.snapshot); }
     paintConf();
     if (conf.location && !conf.weather && !conf.weather_error && !el.hidden) setTimeout(refreshConf, 3000);   // o clima ainda vai chegar
   } catch { /* tenta no próximo ciclo */ }
@@ -493,6 +605,7 @@ function build() {
       <div class="mural-dock-modes"><span class="mural-dock-pill"></span>
         ${MODES.map(([id, label, icon]) => `<button data-mode="${id}" aria-pressed="false" aria-label="${label}">${ic(icon)}<span>${label}</span></button>`).join("")}</div>
       <div class="mural-dock-tools">
+        <button data-layout title="Trocar o layout" aria-label="Trocar o layout">${ic("squares-four")}</button>
         <button data-bg title="Trocar o fundo" aria-label="Trocar o fundo">${ic("image")}</button>
         <button data-fs title="Tela cheia" aria-label="Tela cheia">${ic("frame-corners")}</button>
         <button data-exit title="Sair do Mural" aria-label="Sair do Mural">${ic("x")}</button>
@@ -513,6 +626,7 @@ function build() {
     const mode = e.target.closest("[data-mode]");
     if (mode) return setMode(mode.dataset.mode);
     if (e.target.closest("[data-bg]")) return nextBackground();
+    if (e.target.closest("[data-layout]")) return nextLayout();
     if (e.target.closest("[data-fs]")) return toggleFullscreen();
     if (e.target.closest("[data-exit]")) return close();
     if (e.target.closest("[data-pick-city]")) return close();

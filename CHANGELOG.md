@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.17.0-win — 2026-11-09
+- **Mural com layouts**: escolha em Mural > Layout (com miniaturas) ou pelo botão de quadrados na barra do Mural.
+  - **Cinema** (novo padrão): a tela vira um quadro de filme, com faixas escuras em cima e embaixo, tingidas pela cor
+    da arte, que se fecham ao trocar de cena. No jogo, a arte fica limpa no meio, com logo e hora em cima e FPS e
+    desempenho embaixo. Na música, a capa nítida no centro, o título como cartela e a letra sincronizada como
+    legenda; o progresso é uma linha fina na borda do quadro. No Início, o relógio é o título de abertura, cruzando a
+    borda entre a imagem e a faixa, com o clima e os próximos dias embaixo.
+  - **Painel**: tudo de uma vez sobre o fundo do Início (relógio, clima, jogo, música com letra e o PC), em quadros
+    que se rearranjam conforme o que está aberto. Bom para um tablet ao lado do monitor.
+  - **Clássico**: o layout das versões anteriores, igual.
+- Corrigido: com o player de música aberto, o mini player do jogo podia ir parar dentro do botão "aleatório".
+
 ## 0.16.0-win — 2026-11-09
 - **Letra sincronizada no Mural > Música**: o verso que está sendo cantado aparece em destaque, com o anterior e o
   próximo, acompanhando a posição da música (a mesma da barra de progresso). Funciona com Spotify e qualquer player

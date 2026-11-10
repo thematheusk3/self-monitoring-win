@@ -2,7 +2,7 @@
 // Abertura direta (ex.: tablet fixo): endereço do painel + #mural:abrir
 import { $, $$, esc, toast } from "../ui.js";
 import { ic } from "../icons.js";
-import { close as closeStage, open as openStage } from "../mural-stage.js";
+import { LAYOUTS, close as closeStage, open as openStage } from "../mural-stage.js";
 import { AURORA, BACKDROPS, thumb } from "../mural-backdrop.js";
 import { skyPalette } from "../mural-palette.js";
 import { currentPalette } from "../theme.js";
@@ -14,6 +14,11 @@ const MODE_HELP = {
   music: "A música atual, com a capa de fundo. Sem música, mostra o Início.",
 };
 const MODES = [["auto", "Automático"], ["home", "Início"], ["game", "Jogo"], ["music", "Música"]];
+const LAYOUT_HELP = {
+  cinema: "Como um filme: faixas pretas em cima e embaixo e a arte limpa no meio. A letra da música entra como legenda.",
+  painel: "Tudo de uma vez: relógio, clima, jogo, música e o PC, em quadros que se rearranjam. Bom para um tablet ao lado do monitor.",
+  classico: "O layout das versões anteriores, com painéis de vidro sobre a arte.",
+};
 const GAME_OPTS = [["fps", "FPS"], ["low1", "1% low"], ["frametime", "Frametime"], ["cpu", "Uso da CPU"], ["gpu", "Uso da GPU"],
   ["temps", "Temperaturas"], ["vram", "VRAM"], ["ram", "Memória RAM"], ["session", "Tempo de jogo"], ["music", "Player de música"]];
 const ART_KINDS = [["hero", "Fundo da biblioteca"], ["cover", "Capa vertical"], ["header", "Banner da loja"]];
@@ -33,6 +38,12 @@ function mount(el, a) {
       <p class="note">Para abrir direto em outro aparelho, salve este endereço: <code>${esc(location.origin)}/#mural:abrir</code></p>
     </article>
     <article class="card" data-city></article>
+    <article class="card span-all">
+      <div class="card-head"><div class="card-title">Layout</div></div>
+      <div class="layout-grid" data-layouts>${LAYOUTS.map(([id, l]) => `<button class="bg-tile layout-tile" data-layout="${id}" aria-pressed="false">
+        <span class="layout-mini lm-${id}" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span class="cover-name">${l}</span></button>`).join("")}</div>
+      <p class="note" data-layout-help></p>
+    </article>
     <article class="card">
       <div class="card-head"><div class="card-title">Modo</div></div>
       <div class="seg" data-modes>${MODES.map(([id, l]) => `<button data-mode="${id}" aria-pressed="false">${l}</button>`).join("")}</div>
@@ -92,6 +103,8 @@ async function load() {
 function render() {
   renderCity();
   $$("[data-mode]", root).forEach(b => b.setAttribute("aria-pressed", b.dataset.mode === conf.mode));
+  $$("[data-layout]", root).forEach(b => b.setAttribute("aria-pressed", b.dataset.layout === conf.layout));
+  $("[data-layout-help]", root).textContent = LAYOUT_HELP[conf.layout] || "";
   $("[data-mode-help]", root).textContent = MODE_HELP[conf.mode];
   $$("[data-pref]", root).forEach(c => { c.checked = conf[c.dataset.pref]; });
   $("[data-opts]", root).innerHTML = GAME_OPTS.map(([k, l]) =>
@@ -201,6 +214,8 @@ async function onClick(e) {
   if (e.target.closest("[data-open]")) { location.hash = "mural:abrir"; return openNow(true); }
   const mode = e.target.closest("[data-mode]");
   if (mode) return save({ mode: mode.dataset.mode });
+  const lay = e.target.closest("[data-layout]");
+  if (lay) return save({ layout: lay.dataset.layout });
   const pick = e.target.closest("[data-pick]");
   if (pick) {
     const c = $("[data-cities]", root)._cities[Number(pick.dataset.pick)];

@@ -72,9 +72,16 @@ class PreferencesTest(_Tmp):
         self.assertFalse(Mural().status()["takeover"])
         self.assertFalse(Mural().status()["context"])
 
+    def test_layout_defaults_to_cinema_and_persists(self):
+        m = Mural()
+        self.assertEqual(m.status()["layout"], "cinema")
+        m.update({"layout": "classico"})
+        self.assertEqual(Mural().status()["layout"], "classico")
+        self.assertTrue(Mural().status()["lyrics"])
+
     def test_rejects_bad_values(self):
         m = Mural()
-        for body in ({"mode": "x"}, {"location": {"lat": 200, "lon": 0}}, {"location": {"name": "x"}}):
+        for body in ({"mode": "x"}, {"layout": "x"}, {"location": {"lat": 200, "lon": 0}}, {"location": {"name": "x"}}):
             with self.assertRaises(ValueError):
                 m.update(body)
 
