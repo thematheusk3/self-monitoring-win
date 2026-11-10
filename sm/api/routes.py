@@ -708,6 +708,18 @@ def media_control(req):
         return Response({"error": str(e)}, e.status)
 
 
+@route("GET", "/api/media/audio")
+def media_audio(req):
+    """Volume do app que está tocando (o mesmo do Mixer de volume). Mudar: POST /api/audio {op: volume, kind: app, index}."""
+    from ..media import MediaError
+    if not req.ctx.media:
+        return Response({"error": "indisponível"}, 404)
+    try:
+        return {"audio": req.ctx.media.audio_session(req.query.get("player", [""])[0])}
+    except MediaError as e:
+        return Response({"error": str(e)}, e.status)
+
+
 @route("GET", "/api/media/art")
 def media_art(req):
     from ..media import MediaError

@@ -181,6 +181,7 @@ const SCENES = {
           <h1 data-mtitle></h1><p class="mural-artist" data-artist></p><p class="mural-dim" data-album></p>
           <div class="mural-prog" data-prog><i></i></div><p class="mural-dim num" data-mtime></p>
           <div class="mural-btns" data-btns></div>
+          <div class="mural-vol" data-mvol hidden></div>
         </div>
       </div>
     </div>`,
@@ -279,11 +280,68 @@ function paintMusic(d, ts) {
     prog.firstElementChild.style.width = `${(pos / m.length) * 100}%`;
     time.textContent = `${mmss(pos)} / ${mmss(m.length)}`;
   }
-  const btns = $("[data-btns]", el), key = `${m.id}|${m.status}|${JSON.stringify(m.can)}`;
+  const btns = $("[data-btns]", el), key = `${m.id}|${m.status}|${m.shuffle}|${m.repeat}|${JSON.stringify(m.can)}`;
   if (app.info.features.control && btns.dataset.key !== key) {
     btns.dataset.key = key;
-    btns.innerHTML = mediaButtons(m);
+    btns.innerHTML = mediaButtons(m, { seek: true, extras: true });
   }
+  if (app.info.features.control) appVolume(m.id);
+}
+
+// ---------- volume do app que está tocando (o mesmo do Mixer de volume; não mexe no volume geral) ----------
+let vol = { player: null, at: 0, data: null, busy: false, dragging: false, timer: null };
+
+async function appVolume(player, force = false) {
+  const now = Date.now();
+  if (vol.busy || (!force && player === vol.player && now - vol.at < 5000)) return;
+  if (player !== vol.player) vol.data = null;
+  vol.player = player; vol.at = now; vol.busy = true;
+  try { vol.data = (await app.api(`/api/media/audio?player=${encodeURIComponent(player)}`)).audio; } catch { /* mantém o anterior */ }
+  vol.busy = false;
+  paintVolume();
+}
+
+function paintVolume() {
+  const box = $("[data-mvol]", el);
+  if (!box) return;
+  const a = vol.data;
+  box.hidden = !a;
+  if (!a || vol.dragging) return;
+  if (box.dataset.index !== String(a.index)) {
+    box.dataset.index = a.index;
+    box.innerHTML = `<button class="btn btn-sm mute" data-mvol-mute></button>
+      <input type="range" min="0" max="100" step="1" data-mvol-range aria-label="Volume do ${esc(a.app)}"
+        title="Volume do ${esc(a.app)} (só este app; o volume geral do Windows não muda)">
+      <output data-mvol-out></output>`;
+  }
+  const muteBtn = $("[data-mvol-mute]", box);
+  muteBtn.innerHTML = ic(a.mute ? "speaker-slash" : "speaker-high");
+  muteBtn.classList.toggle("on", a.mute);
+  muteBtn.setAttribute("aria-pressed", a.mute);
+  muteBtn.title = muteBtn.ariaLabel = a.mute ? "Ativar o som do app" : "Mudo só neste app";
+  $("[data-mvol-range]", box).value = a.volume;
+  $("[data-mvol-out]", box).textContent = `${a.volume}%`;
+}
+
+function setVolume(v) {
+  if (!vol.data) return;
+  vol.data.volume = v;
+  $("[data-mvol-out]", el).textContent = `${v}%`;
+  clearTimeout(vol.timer);
+  vol.timer = setTimeout(async () => {
+    try { await app.api("/api/audio", { method: "POST", body: { op: "volume", kind: "app", index: vol.data.index, volume: v } }); }
+    catch { appVolume(vol.player, true); }
+  }, 120);
+}
+
+async function toggleAppMute() {
+  if (!vol.data) return;
+  const mute = !vol.data.mute;
+  try {
+    await app.api("/api/audio", { method: "POST", body: { op: "mute", kind: "app", index: vol.data.index, mute } });
+    vol.data.mute = mute;
+    paintVolume();
+  } catch { appVolume(vol.player, true); }
 }
 
 // ---------- eventos do PC ----------
@@ -398,6 +456,9 @@ function build() {
   backdrop = new Backdrop($(".mural-canvas", el));
   document.fonts?.ready.then(movePill);             // a largura dos botões muda quando a fonte chega
   new ResizeObserver(movePill).observe($(".mural-dock-modes", el));
+  el.addEventListener("input", e => { if (e.target.matches("[data-mvol-range]")) setVolume(Number(e.target.value)); });
+  el.addEventListener("pointerdown", e => { if (e.target.matches("[data-mvol-range]")) vol.dragging = true; });
+  el.addEventListener("pointerup", () => { if (vol.dragging) { vol.dragging = false; vol.at = Date.now(); } });
   el.addEventListener("pointermove", wakeUp);
   el.addEventListener("pointerdown", wakeUp);
   el.addEventListener("focusin", wakeUp);
@@ -408,6 +469,7 @@ function build() {
     if (e.target.closest("[data-fs]")) return toggleFullscreen();
     if (e.target.closest("[data-exit]")) return close();
     if (e.target.closest("[data-pick-city]")) return close();
+    if (e.target.closest("[data-mvol-mute]")) return toggleAppMute();
     const b = e.target.closest("button[data-op]");
     if (b) {
       b.disabled = true;

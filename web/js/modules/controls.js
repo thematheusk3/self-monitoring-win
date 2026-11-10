@@ -92,7 +92,7 @@ function renderMedia(m, ts) {
   const wrap = $("[data-media-wrap]", root);
   if (!m) { wrap.innerHTML = ""; wrap.dataset.key = ""; return; }
   const list = m.players.filter(p => p.title || p.status !== "stopped");
-  const key = JSON.stringify(list.map(p => [p.id, p.status, p.title, p.artist, p.album, p.art, p.can, !!p.length]));
+  const key = JSON.stringify(list.map(p => [p.id, p.status, p.title, p.artist, p.album, p.art, p.can, !!p.length, p.shuffle, p.repeat]));
   if (wrap.dataset.key !== key) {
     wrap.dataset.key = key;
     const ctl = app.info.features.control;
@@ -106,7 +106,7 @@ function renderMedia(m, ts) {
             <div class="media-sub">${esc([p.artist, p.album].filter(Boolean).join(" · "))}
               <span class="media-app">${esc(p.app)} <span class="chip ${STATUS[p.status]?.[0] || ""}">${STATUS[p.status]?.[1] || esc(p.status)}</span></span></div>
             ${p.length ? `<div class="media-prog"><div class="meter"><i></i></div><div class="media-time"></div></div>` : ""}</div>
-          ${ctl ? `<div class="media-btns">${mediaButtons(p, { seek: true })}</div>` : ""}
+          ${ctl ? `<div class="media-btns">${mediaButtons(p, { seek: true, extras: true })}</div>` : ""}
         </div>`; }).join("")}</div>`
       : `<p class="muted">${m.players.length ? `Player aberto (${esc(m.players.map(x => x.app).join(", "))}), nada tocando.` : "Nada tocando no PC."}</p>`}
       ${ctl ? "" : `<p class="note">Controles desativados (security.allow_control).</p>`}

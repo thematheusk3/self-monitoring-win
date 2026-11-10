@@ -170,7 +170,8 @@ def _media(req, body, p):
     op = body.get("op")
     off = float(body.get("offset") or 0)
     label = {"play_pause": "Tocar/pausar", "next": "Próxima faixa", "previous": "Faixa anterior",
-             "seek": f"Avançar {off:g} s" if off >= 0 else f"Voltar {-off:g} s"}.get(op, op)
+             "seek": f"Avançar {off:g} s" if off >= 0 else f"Voltar {-off:g} s",
+             "shuffle": "Ligar/desligar o aleatório", "repeat": "Trocar o modo repetir"}.get(op, op)
     return "media", f"{label} ({body.get('player') or 'player'})", None
 
 

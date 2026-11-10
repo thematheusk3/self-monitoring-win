@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.15.0-win — 2026-11-09
+- **Mural > Música com mais controles**: aleatório, repetir (desligado → playlist → esta faixa), voltar/avançar 10 s e
+  **volume do app que está tocando**, com mudo. É o volume do próprio app no Mixer de volume do Windows (ex.: só o
+  Spotify): o volume geral do PC não muda. Os controles aparecem ao tocar ou mexer o mouse e somem com o resto.
+- Controles > Áudio: o player também ganhou aleatório e repetir.
+- Aleatório e repetir aparecem só quando o player permite (o Spotify permite; navegadores, em geral, não).
+
 ## 0.14.1-win — 2026-11-09
 - **Mural e painel congelados com a leitura de FPS ligada**: o PresentMon às vezes manda latência ou tempo de CPU/GPU
   infinito (quadro que não chegou à tela). O valor ia para o painel como `Infinity`, que o navegador recusa, e a página

@@ -568,7 +568,8 @@ body.login-page { display: grid; place-items: center; min-height: 100dvh; paddin
 .media-time { font-size: 12px; color: var(--text-muted); margin-top: 3px; font-variant-numeric: tabular-nums; }
 .media-btns { grid-column: 1 / -1; display: flex; gap: 8px; }
 .media-btns:empty { display: none; }
-.media-btns .btn { flex: 1; font-size: 17px; }
+.media-btns .btn { flex: 1; font-size: 17px; min-width: 0; padding-inline: 4px; }
+.media-btns .btn.on { color: var(--accent); border-color: var(--accent); }
 /* Controles > Áudio: cartão com todos os players */
 .media-card { margin-bottom: 12px; }
 .media-list { display: grid; gap: 0 24px; }

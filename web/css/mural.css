@@ -139,7 +139,18 @@ body.mural-open { overflow: hidden; }
 .mural-prog i { display: block; height: 100%; border-radius: 4px; background: var(--m-accent); transition: width 1s linear; }
 .mural-btns { display: flex; gap: 10px; margin-top: 14px; max-width: 460px; opacity: 0; transition: opacity .2s; }
 .mural.awake .mural-btns { opacity: 1; }
-.mural-btns .btn { flex: 1; min-height: 52px; font-size: 22px; border-radius: 999px; background: color-mix(in srgb, var(--m-deep) 60%, transparent); border-color: rgb(255 255 255 / .24); color: #f6f8f4; }
+.mural-btns .btn { flex: 1; min-width: 0; padding-inline: 4px; min-height: 52px; font-size: 22px; border-radius: 999px; background: color-mix(in srgb, var(--m-deep) 60%, transparent); border-color: rgb(255 255 255 / .24); color: #f6f8f4; }
+.mural-btns .btn[data-op="seek"] { font-size: 16px; font-weight: 650; }
+.mural-btns .btn.on { color: var(--m-accent); border-color: var(--m-accent); }
+/* volume do app que está tocando (o do Mixer de volume do Windows, não o geral); some junto com os botões */
+.mural-vol { display: flex; align-items: center; gap: 12px; margin-top: 14px; max-width: 460px; opacity: 0; transition: opacity .2s; }
+.mural.awake .mural-vol { opacity: 1; }
+.mural-vol[hidden] { display: none; }
+.mural-vol .btn { flex: none; width: 52px; min-height: 52px; padding: 0; border-radius: 999px; font-size: 22px;
+  background: color-mix(in srgb, var(--m-deep) 60%, transparent); border-color: rgb(255 255 255 / .24); color: #f6f8f4; }
+.mural-vol .btn.on { color: #ff8a80; border-color: currentColor; }
+.mural-vol input[type=range] { flex: 1; min-width: 0; height: 36px; accent-color: var(--m-accent); }
+.mural-vol output { min-width: 4ch; text-align: right; font-variant-numeric: tabular-nums; font-size: clamp(14px, 2.2vmin, 20px); }
 
 /* eventos: avisos no canto */
 .mural-toasts { position: absolute; top: var(--pad); right: var(--pad); z-index: 3; display: grid; gap: 10px; width: min(440px, calc(100vw - 2 * var(--pad))); transition: top .32s var(--ease); }
@@ -215,7 +226,10 @@ body.mural-open { overflow: hidden; }
   .mural-track { grid-template-columns: 1fr; justify-items: center; text-align: center; align-content: center; }
   .mural-art { width: min(74vw, 46vh); }
   .mural-info { width: 100%; }
-  .mural-btns { margin-inline: auto; }
+  .mural-btns, .mural-vol { margin-inline: auto; }
+  .mural-btns { gap: 6px; }
+  .mural-btns .btn { min-height: 46px; font-size: 19px; }
+  .mural-btns .btn[data-op="seek"] { font-size: 13px; }
   .mural-game { grid-template-columns: 1fr; }
   .mural-player { max-width: 100%; }
   .mural-logo { max-width: 80vw; }

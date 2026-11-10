@@ -96,6 +96,22 @@ class NonFiniteTest(unittest.TestCase):
         self.assertNotIn("Infinity", out)
 
 
+class MediaAudioTest(unittest.TestCase):
+    """Volume do player no Mural: a sessão de áudio do mesmo app (Mixer de volume), não o volume geral."""
+
+    def test_match_session(self):
+        from sm.media import match_session
+        apps = [{"index": 1, "binary": "Spotify.exe", "app": "Spotify", "volume": 80, "mute": False, "corked": True},
+                {"index": 2, "binary": "Spotify.exe", "app": "Spotify", "volume": 60, "mute": False, "corked": False},
+                {"index": 3, "binary": "msedge.exe", "app": "Edge", "volume": 100, "mute": True, "corked": False},
+                {"index": 4, "binary": "firefox.exe", "app": "Firefox", "volume": 50, "mute": False, "corked": False},
+                {"index": 5, "binary": None, "app": "Sons do sistema", "volume": 100, "mute": False, "corked": False}]
+        self.assertEqual(match_session("Spotify.exe", apps)["index"], 2)        # a que está tocando
+        self.assertEqual(match_session("MSEdge", apps)["mute"], True)
+        self.assertEqual(match_session("308046B0AF4A39CB", apps)["index"], 4)   # Firefox
+        self.assertIsNone(match_session("VLC.exe", apps))
+
+
 class FanHintTest(unittest.TestCase):
     def test_hint(self):
         self.assertIsNone(fan_hint([], [{"rpm": 900}], "MSI"))

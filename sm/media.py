@@ -21,6 +21,11 @@ APP_NAMES = {"spotify.exe": "Spotify", "chrome": "Google Chrome", "msedge": "Mic
              "microsoft.zunemusic_8wekyb3d8bbwe!microsoft.zunemusic": "Media Player", "discord.exe": "Discord"}
 OPS = {"play_pause": "try_toggle_play_pause_async", "next": "try_skip_next_async",
        "previous": "try_skip_previous_async", "play": "try_play_async", "pause": "try_pause_async"}
+REPEAT = {0: "none", 1: "track", 2: "list"}        # MediaPlaybackAutoRepeatMode
+REPEAT_NEXT = {"none": 2, "list": 1, "track": 0}    # toque no botão: desligado -> playlist -> faixa -> desligado
+# player (AUMID) -> executável da sessão de áudio, quando o nome não bate direto
+AUDIO_EXE = {"chrome": "chrome", "msedge": "msedge", "308046b0af4a39cb": "firefox", "6f193ccc56814779": "firefox",
+             "brave": "brave", "opera": "opera", "microsoft.zunemusic_8wekyb3d8bbwe!microsoft.zunemusic": "microsoft.media.player"}
 
 
 class MediaError(Exception):
@@ -67,6 +72,11 @@ class Media:
             tl = s.get_timeline_properties()
             c = pb.controls
             status = STATUS.get(int(pb.playback_status), "stopped")
+            try:
+                shuffle = None if pb.is_shuffle_active is None else bool(pb.is_shuffle_active)
+                repeat = None if pb.auto_repeat_mode is None else REPEAT.get(int(pb.auto_repeat_mode))
+            except Exception:  # noqa: BLE001  (sem o pacote winrt-Windows.Media)
+                shuffle = repeat = None
             length = tl.end_time.total_seconds() - tl.start_time.total_seconds() if tl.end_time else 0
             pos = tl.position.total_seconds() if tl.position is not None else None
             # a posição vale para last_updated_time; tocando, soma o tempo desde então
@@ -91,10 +101,12 @@ class Media:
                 "art": art if aid in self.arts else None, "url": None,
                 "length": round(length, 1) if length > 0 else None,
                 "position": round(pos, 1) if pos is not None and length > 0 else None,
-                "rate": pb.playback_rate or 1.0,
+                "rate": pb.playback_rate or 1.0, "shuffle": shuffle, "repeat": repeat,
                 "can": {"play_pause": bool(c.is_play_pause_toggle_enabled or c.is_play_enabled or c.is_pause_enabled),
                         "next": bool(c.is_next_enabled), "previous": bool(c.is_previous_enabled),
-                        "seek": bool(c.is_playback_position_enabled) and length > 0},
+                        "seek": bool(c.is_playback_position_enabled) and length > 0,
+                        "shuffle": bool(c.is_shuffle_enabled) and shuffle is not None,
+                        "repeat": bool(c.is_repeat_enabled) and repeat is not None},
             })
         return out
 
@@ -137,6 +149,15 @@ class Media:
                 raise MediaError("offset inválido.")
             target = max(0.0, min((p["position"] or 0) + off, p["length"] or 0))
             aw = session.try_change_playback_position_async(int(target * 10_000_000))   # unidades de 100 ns
+        elif op == "shuffle":
+            if not p["can"].get("shuffle"):
+                raise MediaError("Este player não permite o modo aleatório.")
+            aw = session.try_change_shuffle_active_async(not p.get("shuffle"))
+        elif op == "repeat":
+            if not p["can"].get("repeat"):
+                raise MediaError("Este player não permite repetir.")
+            from winrt.windows.media import MediaPlaybackAutoRepeatMode
+            aw = session.try_change_auto_repeat_mode_async(MediaPlaybackAutoRepeatMode(REPEAT_NEXT[p.get("repeat") or "none"]))
         elif op in OPS:
             aw = getattr(session, OPS[op])()
         else:
@@ -150,10 +171,28 @@ class Media:
         time.sleep(0.3)       # o player leva um instante para atualizar o estado
         return self.collect()
 
+    def audio_session(self, pid: str) -> dict | None:
+        """Sessão de áudio (Mixer de volume) do app deste player: volume próprio do app, sem mexer no geral."""
+        self._find(pid)
+        from . import audio
+        return match_session(pid, audio.state()["apps"])
+
     def art_file(self, pid: str) -> tuple[bytes, str] | None:
         self._find(pid)
         a = self.arts.get(pid)
         return (a[1], a[2]) if a else None
+
+
+def match_session(player_id: str, apps: list[dict]) -> dict | None:
+    """Player (AUMID: "Spotify.exe", "MSEdge", "Microsoft.ZuneMusic_...!...") -> sessão de áudio do mesmo executável.
+    Se houver várias (uma por saída), fica com a que está tocando."""
+    low = player_id.lower()
+    want = AUDIO_EXE.get(low) or low.split("!")[0].split("_")[0].removesuffix(".exe")
+    found = [a for a in apps if a.get("binary") and a["binary"].lower().removesuffix(".exe") == want]
+    if not found:
+        return None
+    a = sorted(found, key=lambda x: x.get("corked", False))[0]
+    return {"index": a["index"], "volume": a["volume"], "mute": a["mute"], "app": a["app"], "device": a.get("device")}
 
 
 async def _read_thumb(ref) -> bytes | None:
