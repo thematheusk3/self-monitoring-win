@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.17.3-win — 2026-11-11
+- **Instalação num PC sem nada instalado**: se faltar o Python, o `install.cmd` instala o Python 3.13 oficial
+  (python.org, pelo winget) e segue; se faltar o Git (usado pelo `atualizar.cmd`), instala também. Sem winget, explica o
+  que fazer.
+- O instalador procura o Python pelo registro do Windows e não chama mais o atalho falso `python` de um Windows novo, que
+  abria a Microsoft Store. Só aceita Python de 64 bits e fora da Loja, e usa o mais novo instalado.
+- Se o `install.cmd` falhar antes de abrir a janela de administrador, a janela fica aberta com a mensagem.
+- README: nova seção **Requisitos** (o que precisa, o que é opcional e o que o instalador resolve sozinho) e passo a
+  passo de instalação com e sem Git.
+
 ## 0.17.2-win — 2026-11-09
 - **Logs: "Mais recentes primeiro"** (ligado de fábrica): a linha mais nova fica no topo, as antigas carregam embaixo e,
   com "Ao vivo", as novas entram em cima. Desmarque para a ordem antiga (mais novas no fim). A escolha fica salva em

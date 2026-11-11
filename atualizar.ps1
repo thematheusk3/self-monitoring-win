@@ -36,7 +36,7 @@ function Get-InstalledVersion {
 }
 
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-    Fail "O git não foi encontrado. Instale com:  winget install Git.Git  ou siga a opção sem git em ATUALIZAR.md."
+    Fail "O git não foi encontrado. Rode o install.cmd (ele instala o Git) ou:  winget install Git.Git  — ou siga a opção sem git em ATUALIZAR.md."
 }
 if (-not (Test-Path (Join-Path $PSScriptRoot ".git"))) {
     Fail "Esta pasta não veio de um git clone. Siga a opção com ZIP em ATUALIZAR.md."

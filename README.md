@@ -62,12 +62,33 @@ O que existe só em uma versão, o que dá para levar para a outra e o que é im
 | Webhook | Outros programas enviam notificações para o painel. |
 | Atualização do painel | Versão instalada × GitHub, changelog, link do repositório e aviso "Nova" na navegação. |
 
+## Requisitos
+
+| O quê | Precisa? | O instalador cuida? |
+|---|---|---|
+| Windows 10 (versão 1809 ou mais nova) ou 11, 64 bits | Sim | — |
+| Conta de **administrador** no PC (o instalador pede a permissão) | Sim | — |
+| Internet durante a instalação (baixa as dependências do Python) | Sim | — |
+| **Python 3.11 ou mais novo, do python.org** (o da Microsoft Store não serve) | Sim | **Sim**: se não achar, instala o Python 3.13 oficial pelo winget |
+| **winget** (vem no Windows 11 e no Windows 10 atualizado, como "Instalador de Aplicativo") | Para instalar o que falta | Se faltar, o instalador explica o que fazer |
+| **Git** | Só para baixar com `git clone` e para o `atualizar.cmd` | **Sim**: se não achar, instala pelo winget |
+| LibreHardwareMonitor (temperatura da CPU, ventoinhas) | Opcional | Com `install.cmd -LHM` |
+| PresentMon (FPS dos jogos) | Opcional | Com `install.cmd -PresentMon` |
+
+Não precisa de Visual C++ Redistributable nem de outros programas: o painel leva um Python próprio para
+`C:\Program Files\SelfMonitoring`.
+
 ## Instalar
 
-Requisitos: Windows 10/11 e **Python 3.11+ do python.org** (`winget install Python.Python.3.13`; o da Microsoft Store não serve).
+1. Baixe o projeto, de um dos jeitos:
+   - **Sem Git**: no GitHub, **Code > Download ZIP**, e extraia (ex.: em `C:\self-monitoring-win`). Para atualizar depois
+     com dois cliques (`atualizar.cmd`), prefira o Git.
+   - **Com Git**: `winget install Git.Git`, abra um terminal novo e rode
+     `git clone https://github.com/thematheusk3/self-monitoring-win C:\win-self-monitoring`.
+2. Na pasta, dê dois cliques no **`install.cmd`** e aceite a permissão de administrador. Se faltar o Python, ele é
+   instalado na hora (leva de 1 a 3 minutos). Se aparecer um erro, a janela fica aberta com a mensagem.
 
 ```powershell
-# na pasta do projeto (clique duas vezes no install.cmd ou rode no PowerShell):
 .\install.cmd                    # instala ou atualiza
 .\install.cmd -PresentMon -LHM   # também instala o PresentMon (FPS) e o LibreHardwareMonitor (sensores)
 ```

@@ -5,6 +5,7 @@
 .DESCRIPTION
   - Copia o painel e um Python próprio para "C:\Program Files\SelfMonitoring" (só administradores podem
     alterar: o painel roda elevado, então nada que ele executa pode ficar numa pasta do usuário).
+  - Se faltar, instala o Python 3.13 oficial (python.org) e o Git pelo winget. O Python da Microsoft Store não serve.
   - Instala as dependências (psutil, pycaw, winrt) nesse Python.
   - Cria a tarefa agendada "SelfMonitoring": inicia oculta no logon do usuário, como administrador.
   - Libera a porta no Firewall do Windows (só redes Privadas/Domínio).
@@ -155,6 +156,51 @@ function Enable-LhmWebServer {
 }
 # endregion LHM
 
+# region requisitos
+# Num Windows novo, "python" é um atalho falso (pasta WindowsApps) que abre a Microsoft Store: não chamamos esse.
+# Procura pelo registro (PEP 514: onde os instaladores do python.org se cadastram; o lançador py.exe usa o mesmo
+# registro) e pelo PATH.
+function Find-Python {
+    $cands = New-Object System.Collections.Generic.List[string]
+    foreach ($hive in @("HKLM:\SOFTWARE\Python\PythonCore", "HKCU:\SOFTWARE\Python\PythonCore", "HKLM:\SOFTWARE\WOW6432Node\Python\PythonCore")) {
+        Get-ChildItem $hive -ErrorAction SilentlyContinue | ForEach-Object {
+            $ip = Get-ItemProperty (Join-Path $_.PSPath "InstallPath") -ErrorAction SilentlyContinue
+            $exe = if ($ip.ExecutablePath) { $ip.ExecutablePath } elseif ($ip.'(default)') { Join-Path $ip.'(default)' "python.exe" }
+            if ($exe) { $cands.Add($exe) }
+        }
+    }
+    $cmd = Get-Command python -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($cmd -and $cmd.Source -notmatch "WindowsApps") { $cands.Add($cmd.Source) }
+    $best = $null
+    foreach ($exe in ($cands | Select-Object -Unique)) {
+        if (-not (Test-Path $exe) -or $exe -match "WindowsApps") { continue }
+        try {
+            $out = Invoke-Native { & $exe -c "import sys, struct; print(sys.base_prefix); print('%d.%d' % sys.version_info[:2]); print(struct.calcsize('P') * 8)" 2>$null }
+        } catch { continue }
+        if ($LASTEXITCODE -ne 0 -or $out.Count -lt 3) { continue }
+        $v = [version]$out[1]
+        # 64 bits (o painel usa APIs de 64 bits) e fora da pasta da Store
+        if ($v -ge [version]"3.11" -and $out[2] -eq "64" -and -not $out[0].Contains("WindowsApps")) {
+            if (-not $best -or $v -gt $best[1]) { $best = @($out[0], $v) }
+        }
+    }
+    return $best
+}
+
+# O git não é usado pelo painel, só para baixar e atualizar o repositório (atualizar.cmd).
+function Install-GitIfMissing {
+    if (Get-Command git -ErrorAction SilentlyContinue) { return }
+    if (Test-Path "$env:ProgramFiles\Git\cmd\git.exe") { return }
+    if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
+        Say "Git não encontrado: o atualizar.cmd precisa dele. Instale em https://git-scm.com/download/win (o painel funciona sem)." Yellow
+        return
+    }
+    Step "Git não encontrado: instalando (usado pelo atualizar.cmd para baixar as versões novas)"
+    Invoke-Native { winget install --id Git.Git --exact --source winget --scope machine --silent --accept-source-agreements --accept-package-agreements --disable-interactivity }
+    if ($LASTEXITCODE -ne 0) { Say "Não foi possível instalar o Git (winget $LASTEXITCODE). O painel funciona sem; só o atualizar.cmd precisa dele." Yellow }
+}
+# endregion requisitos
+
 $Py = Join-Path $Dest "python\python.exe"
 $PyW = Join-Path $Dest "python\pythonw.exe"
 
@@ -192,20 +238,25 @@ try {
 
     # ---------- Python ----------
     Step "Procurando o Python (3.11 ou mais novo)"
-    $base = $null
-    foreach ($cand in @(@("py", "-3"), @("python"))) {
-        try {
-            $out = Invoke-Native { & $cand[0] $cand[1..9] -c "import sys; print(sys.base_prefix); print('%d.%d' % sys.version_info[:2])" 2>$null }
-            if ($LASTEXITCODE -eq 0 -and $out.Count -ge 2) {
-                $ver = [version]$out[1]
-                if ($ver -ge [version]"3.11" -and -not $out[0].Contains("WindowsApps")) { $base = $out[0]; break }
-            }
-        } catch {}
+    $found = Find-Python
+    if (-not $found) {
+        if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
+            throw ("Python 3.11+ não encontrado, e o winget (que o instalaria sozinho) também não.`n" +
+                "  Opção 1: instale o 'Instalador de Aplicativo' da Microsoft Store (traz o winget) e rode este instalador de novo.`n" +
+                "  Opção 2: baixe o Python 3.13 em https://www.python.org/downloads/windows/ , instale e rode este instalador de novo.`n" +
+                "  O Python da Microsoft Store não serve.")
+        }
+        Step "Python não encontrado: instalando o Python 3.13 oficial (python.org, pelo winget; leva 1 a 3 minutos)"
+        Invoke-Native { winget install --id Python.Python.3.13 --exact --source winget --scope machine --silent --accept-source-agreements --accept-package-agreements --disable-interactivity }
+        $wingetCode = $LASTEXITCODE
+        $found = Find-Python
+        if (-not $found) {
+            throw "A instalação do Python não deu certo (winget $wingetCode). Instale o Python 3.13 em https://www.python.org/downloads/windows/ e rode de novo."
+        }
     }
-    if (-not $base) {
-        throw "Python 3.11+ não encontrado. Instale com:  winget install Python.Python.3.13  (o da Microsoft Store não serve) e rode de novo."
-    }
+    $base, $ver = $found
     Say "Python base: $base ($ver)"
+    Install-GitIfMissing
 
     Step "Parando o painel (se estiver rodando)"
     Stop-Panel
@@ -255,11 +306,11 @@ try {
     # ---------- extras ----------
     if ($PresentMon) {
         Step "Instalando o PresentMon (FPS dos jogos)"
-        Invoke-Native { winget install --id Intel.PresentMon.Console --scope machine --accept-source-agreements --accept-package-agreements --disable-interactivity }
+        Invoke-Native { winget install --id Intel.PresentMon.Console --exact --source winget --scope machine --accept-source-agreements --accept-package-agreements --disable-interactivity }
     }
     if ($LHM) {
         Step "Instalando o LibreHardwareMonitor (sensores)"
-        Invoke-Native { winget install --id LibreHardwareMonitor.LibreHardwareMonitor --accept-source-agreements --accept-package-agreements --disable-interactivity }
+        Invoke-Native { winget install --id LibreHardwareMonitor.LibreHardwareMonitor --exact --source winget --accept-source-agreements --accept-package-agreements --disable-interactivity }
     }
     Step "Conferindo o servidor web do LibreHardwareMonitor (sensores)"
     try {
