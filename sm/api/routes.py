@@ -24,6 +24,7 @@ def info(req):
                      "alerts": ctx.alerts is not None, "updates": ctx.updates is not None,
                      "media": ctx.media is not None, "admin": is_admin(),
                      "services": True, "services_control": ctx.config.allow_services, "logs": ctx.config.allow_logs,
+                     "update_apply": ctx.config.update_apply,
                      "incidents": ctx.investigator is not None, "history": ctx.store is not None},
         "machine": _machine(),
         "platform": "windows",
@@ -593,6 +594,19 @@ def panel_update_check(req):
         return Response({"error": "indisponível"}, 404)
     req.ctx.selfupdate.check_now()
     return req.ctx.selfupdate.status()
+
+
+@route("POST", "/api/panel-update/apply")
+def panel_update_apply(req):
+    """Instala a versão do GitHub agora (só quando o usuário clica; ver sm/selfupdate.py)."""
+    if not req.ctx.selfupdate:
+        return Response({"error": "indisponível"}, 404)
+    if not req.ctx.config.update_apply:
+        return Response({"error": "Atualizar pelo painel está desligado ([update] allow_apply = false)."}, 403)
+    try:
+        return req.ctx.selfupdate.apply()
+    except RuntimeError as e:
+        return Response({"error": str(e)}, 409)
 
 
 @route("POST", "/api/updates/refresh")

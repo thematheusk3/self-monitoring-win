@@ -413,12 +413,31 @@ topo do cartão. **O painel não instala atualizações**.
 ### Atualização do painel
 
 A aba *Atualização* compara a versão instalada com a do GitHub e mostra o changelog, o link do repositório e os comandos para
-atualizar. Quando há versão maior, a navegação mostra **Nova**. O aviso depende do número da versão: um commit que não
+atualizar. Com versão nova, o botão **Atualizar agora** (também no ícone perto do relógio) instala pelo próprio painel: baixa
+do GitHub, instala, reinicia e a página recarrega na versão nova, em cerca de 1 minuto. **Só acontece quando você clica.**
+Quem instala é a tarefa agendada *SelfMonitoring Atualizar* (criada pelo `install.cmd`), que roda
+`C:\Program Files\SelfMonitoring\tools\atualizar-painel.ps1` e baixa o GitHub em `C:\Program Files\SelfMonitoring\repo`,
+pastas que só administradores alteram (a pasta do projeto não é usada, porque qualquer programa consegue mudá-la e o que
+roda ali roda como administrador). Andamento em `data\update-status.json`, saída completa em `data\update.log`. Para
+desligar o botão: `allow_apply = false` em `[update]`. Quando há versão maior, a navegação mostra **Nova**. O aviso depende do número da versão: um commit que não
 aumenta `__version__` não gera aviso.
 
 O painel só lê dois arquivos públicos do repositório (`raw.githubusercontent.com`), com ele aberto e no máximo a cada 6 h. Não
 envia dados do PC, não baixa nem instala nada. Para desligar: `check = false` em `[update]` no `config.toml`. A aba continua
 mostrando o changelog da versão instalada.
+
+## Ícone perto do relógio
+
+O painel põe um ícone na área de notificação, ao lado do relógio, enquanto está rodando. Passando o mouse aparece o
+endereço para entrar pela rede; o clique abre o painel no navegador. O botão direito mostra:
+
+- abrir o painel ou o Mural;
+- os endereços para o celular ou outro PC (IP e porta de cada rede, e o `localhost`): um clique copia;
+- **Computador**: bloquear a tela, reiniciar, desligar (com confirmação) e cancelar um desligamento agendado;
+- **Painel**: procurar atualização, atualizar agora (só com versão nova), abrir o `config.toml`, o log e a pasta, e
+  encerrar o painel (volta no próximo logon).
+
+Para não mostrar o ícone: `[tray] enabled = false` no `config.toml`.
 
 ## Desligar / reiniciar
 

@@ -26,7 +26,8 @@ param(
     [switch]$LHM,
     [int]$Port = 0,
     [string]$ForUser = "",
-    [switch]$Elevated
+    [switch]$Elevated,
+    [switch]$Unattended      # sem perguntas nem pausa (atualização pedida pelo painel: tools\atualizar-painel.ps1)
 )
 
 $ErrorActionPreference = "Stop"
@@ -34,6 +35,7 @@ $App = "SelfMonitoring"
 $Dest = Join-Path $env:ProgramFiles $App
 $Src = $PSScriptRoot
 $TaskName = $App
+$UpdateTask = "$App Atualizar"
 $FwName = "Self Monitoring (painel)"
 
 function Say($msg, $color = "Gray") { Write-Host $msg -ForegroundColor $color }
@@ -74,7 +76,7 @@ if (-not $ForUser) { $ForUser = "$env:USERDOMAIN\$env:USERNAME" }
 # A tarefa roda no logon de $ForUser. Se o instalador foi aberto como OUTRA conta de administrador (terminal
 # "Executar como outro usuário", conta de admin separada), o painel ficaria na conta errada: confere com quem está
 # usando o PC (dono da sessão do console) e pergunta.
-if (-not $Uninstall -and -not $SetPassword) {
+if (-not $Uninstall -and -not $SetPassword -and -not $Unattended) {
     $consoleUser = ""
     try { $consoleUser = [string](Get-CimInstance Win32_ComputerSystem -ErrorAction Stop).UserName } catch {}
     if ($consoleUser -and $consoleUser -ne $ForUser -and ($consoleUser -split '\\')[-1] -ne ($ForUser -split '\\')[-1]) {
@@ -87,7 +89,7 @@ if (-not $Uninstall -and -not $SetPassword) {
 }
 
 function Pause-IfElevated {
-    if ($Elevated) { Write-Host ""; Read-Host "Pressione Enter para fechar" | Out-Null }
+    if ($Elevated -and -not $Unattended) { Write-Host ""; Read-Host "Pressione Enter para fechar" | Out-Null }
 }
 
 function Stop-Panel {
@@ -221,6 +223,7 @@ try {
         Step "Removendo o self-monitoring"
         Stop-Panel
         Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false -ErrorAction SilentlyContinue
+        Unregister-ScheduledTask -TaskName $UpdateTask -Confirm:$false -ErrorAction SilentlyContinue
         Get-NetFirewallRule -DisplayName $FwName -ErrorAction SilentlyContinue | Remove-NetFirewallRule
         if (Test-Path $Dest) {
             if ($Purge) {
@@ -348,6 +351,17 @@ try {
         -ExecutionTimeLimit ([TimeSpan]::Zero) -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1) -MultipleInstances IgnoreNew
     Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings `
         -Description "Painel self-monitoring (http://localhost:$PanelPort)" -Force | Out-Null
+
+    # Atualização pelo painel: só roda quando o usuário clica em "Atualizar agora" (não tem gatilho de horário). O script
+    # fica em Arquivos de Programas e baixa o GitHub numa cópia protegida (ver tools\atualizar-painel.ps1).
+    $upd = Join-Path $Dest "tools\atualizar-painel.ps1"
+    $updLog = Join-Path $Dest "data\update.log"
+    $uAction = New-ScheduledTaskAction -Execute "powershell.exe" -WorkingDirectory $Dest `
+        -Argument "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command `"& '$upd' *> '$updLog'`""
+    $uSettings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries `
+        -ExecutionTimeLimit (New-TimeSpan -Minutes 30) -MultipleInstances IgnoreNew
+    Register-ScheduledTask -TaskName $UpdateTask -Action $uAction -Principal $principal -Settings $uSettings `
+        -Description "Atualiza o self-monitoring quando pedido pelo painel (não roda sozinha)" -Force | Out-Null
 
     Step "Iniciando o painel"
     Start-ScheduledTask -TaskName $TaskName

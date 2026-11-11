@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.18.0-win — 2026-11-11
+- **Ícone perto do relógio** (área de notificação): mostra que o painel está rodando e, ao passar o mouse, o endereço
+  para entrar pela rede. Clique abre o painel; o botão direito traz:
+  - abrir o painel ou o Mural;
+  - **os endereços para o celular** (IP e porta da rede e o deste PC): um clique copia;
+  - **Computador**: bloquear a tela, reiniciar e desligar (com confirmação), cancelar o desligamento agendado;
+  - **Painel**: procurar atualização, atualizar agora, abrir a configuração, o log e a pasta, encerrar o painel.
+  Desliga em `[tray] enabled = false`.
+- **Atualizar pelo painel, só quando você pede**: com versão nova no GitHub, a aba Atualização (e o ícone) mostram
+  **Atualizar agora**. Com dois toques, o painel baixa a versão do GitHub, instala, reinicia e a página recarrega sozinha
+  na versão nova; o andamento e o resultado (ou o motivo da falha) aparecem na aba. Nada é instalado sem o clique.
+  Por segurança, quem instala é uma tarefa que roda um script de Arquivos de Programas e baixa o GitHub numa cópia
+  protegida: a pasta do projeto, que qualquer programa consegue alterar, não é usada. Desliga em
+  `[update] allow_apply = false`. **Rode o `install.cmd` uma vez** para criar essa tarefa.
+
 ## 0.17.3-win — 2026-11-11
 - **Instalação num PC sem nada instalado**: se faltar o Python, o `install.cmd` instala o Python 3.13 oficial
   (python.org, pelo winget) e segue; se faltar o Git (usado pelo `atualizar.cmd`), instala também. Sem winget, explica o

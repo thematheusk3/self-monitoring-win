@@ -4,7 +4,8 @@ import { $, esc, toast } from "../ui.js";
 import { ic } from "../icons.js";
 
 const POLL = 30 * 60 * 1000;
-let app, root, data = null;
+let app, root, data = null, armed = false, following = null;
+const BUSY = ["starting", "running", "installing"];
 
 const HEAD = {
   update: v => `Nova versão disponível: ${esc(v)}`,
@@ -33,6 +34,7 @@ function mount(el, a) {
       <div data-log></div></article>
   </div>`;
   el.addEventListener("click", async e => {
+    if (e.target.closest("[data-apply]")) return apply(e.target.closest("[data-apply]"));
     const b = e.target.closest("[data-check]");
     if (!b) return;
     b.disabled = true;
@@ -45,6 +47,70 @@ function mount(el, a) {
   });
   poll();
   setInterval(poll, POLL);
+}
+
+// ---------- atualizar agora (só quando a pessoa clica) ----------
+async function apply(btn) {
+  if (!armed) {        // primeiro toque arma, o segundo confirma
+    armed = true;
+    btn.textContent = "Toque de novo para atualizar";
+    setTimeout(() => { armed = false; paint(); }, 5000);
+    return;
+  }
+  armed = false;
+  btn.disabled = true;
+  try {
+    data = await app.api("/api/panel-update/apply", { method: "POST", body: {} });
+    toast("Atualização iniciada. O painel fica fora do ar por cerca de 1 minuto e volta sozinho.");
+    follow(data.installed);
+  } catch (err) { toast(err.message, true); }
+  paint();
+}
+
+/** Acompanha até a versão nova responder (o painel cai no meio e volta) e recarrega a página. */
+function follow(from) {
+  if (following) return;
+  const started = Date.now();
+  following = setInterval(async () => {
+    try {
+      const info = await app.api("/api/info");
+      if (info.version !== from) { clearInterval(following); following = null; location.reload(); return; }
+      data = await app.api("/api/panel-update");
+      paint();
+      if (!BUSY.includes(data.apply?.state)) { clearInterval(following); following = null; }
+    } catch {
+      paintOffline();                                 // reiniciando: a API não responde por alguns segundos
+    }
+    if (Date.now() - started > 6 * 60000) { clearInterval(following); following = null; }
+  }, 3000);
+}
+
+function paintOffline() {
+  const box = $("[data-apply-box]", root);
+  if (box) box.innerHTML = `<div class="fan-alert info">${ic("arrow-clockwise")} Instalando a versão nova. O painel está reiniciando e esta página recarrega sozinha.</div>`;
+}
+
+function applyHtml() {
+  const a = data.apply, recent = a?.ts && Date.now() / 1000 - a.ts < 86400;
+  let out = "";
+  if (a && BUSY.includes(a.state)) {
+    out = `<div class="fan-alert info">${ic("arrow-clockwise")} ${esc(a.message || "Atualizando...")}</div>`;
+    if (!following) follow(data.installed);
+  } else if (a?.state === "error" && recent) {
+    out = `<div class="fan-alert warning">A última atualização falhou: ${esc(a.message || "")}</div>`;
+  } else if (a?.state === "done" && recent) {
+    out = `<div class="fan-alert good">${ic("check")} ${esc(a.message || "Atualizado.")}</div>`;
+  }
+  if (!app.info?.features?.update_apply) return out;
+  if (!data.can_apply) {
+    return out + `<p class="note">Para atualizar por aqui, rode o <code>install.cmd</code> no PC uma vez: ele cria a tarefa que faz a atualização quando você pede.</p>`;
+  }
+  const busy = a && BUSY.includes(a.state);
+  if (data.state === "update" && !busy) {
+    out += `<button class="btn btn-primary" data-apply>${ic("download-simple")} Atualizar agora para ${esc(data.latest)}</button>
+      <p class="note">Baixa do GitHub e instala no PC. O painel fica fora do ar por cerca de 1 minuto. Nada é instalado sem você pedir.</p>`;
+  }
+  return out;
 }
 
 async function poll() {
@@ -83,6 +149,7 @@ function paint() {
       <dt>No GitHub</dt><dd>${esc(data.latest || "—")}</dd>
       <dt>Última verificação</dt><dd>${esc(when)}</dd>
     </dl>
+    <div data-apply-box>${applyHtml()}</div>
     <div class="update-actions">
       <button class="btn" data-check ${data.enabled ? "" : "disabled"}>${ic("arrow-clockwise")} Verificar agora</button>
       <a class="btn" href="${esc(data.repo_url)}" target="_blank" rel="noopener noreferrer">Abrir repositório</a>

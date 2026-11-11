@@ -461,6 +461,7 @@ body.login-page { display: grid; place-items: center; min-height: 100dvh; paddin
 .fan-pt .search { flex: none; width: 64px; min-height: 34px; padding: 0 8px; }
 .fan-alert { border-left: 3px solid var(--c, var(--warning)); background: var(--surface-2); border-radius: 0 var(--r-m) var(--r-m) 0; padding: 8px 12px; margin: 6px 0 10px; font-size: 13.5px; line-height: 1.45; }
 .fan-alert.warning { --c: var(--warning); } .fan-alert.critical { --c: var(--critical); }
+.fan-alert.good { --c: var(--good); } .fan-alert.info { --c: var(--accent); }
 
 /* ---------- processos: visões, análise, suspeitos ---------- */
 .proc-views { margin-bottom: 12px; }

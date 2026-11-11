@@ -1,13 +1,17 @@
 """Versão do painel × GitHub: mostra o changelog e avisa quando há versão nova.
 
-Só consulta: não baixa nem instala nada. Compara `__version__` com o de `sm/__init__.py` no repositório. Quem atualiza é
-o usuário (ver ATUALIZAR.md). A checagem acontece só quando alguém abre o painel, no máximo a cada CHECK_EVERY, e pode
-ser desligada em [update] check = false. (Windows Update e winget ficam em updates.py.)
+A consulta não baixa nada: compara `__version__` com o de `sm/__init__.py` no repositório. A checagem acontece só quando
+alguém abre o painel, no máximo a cada CHECK_EVERY, e pode ser desligada em [update] check = false.
+Instalar a versão nova só acontece quando o usuário pede ("Atualizar agora" na aba ou no ícone perto do relógio): o painel
+dispara a tarefa "SelfMonitoring Atualizar", que roda tools/atualizar-painel.ps1 a partir de Arquivos de Programas
+(só administradores alteram). O andamento fica em data/update-status.json. (Windows Update e winget ficam em updates.py.)
 """
 from __future__ import annotations
 
+import json
 import logging
 import re
+import subprocess
 import threading
 import time
 import urllib.error
@@ -25,7 +29,11 @@ TIMEOUT = 8
 
 # o que muda entre as versões Windows e Linux; o frontend só exibe
 UPDATE_STEPS = ["C:\\win-self-monitoring\\atualizar.cmd"]
-UPDATE_NOTE = "Dois cliques no arquivo, no PC. O Windows pede permissão de administrador. Sua configuração, senha e históricos são mantidos."
+APPLY_TASK = "SelfMonitoring Atualizar"
+APPLY_STATUS = ROOT / "data" / "update-status.json"
+APPLY_STALE = 40 * 60       # s: "rodando" há mais que isso = a tarefa morreu no meio
+UPDATE_NOTE = ("Ou, no PC, dois cliques nesse arquivo (o Windows pede permissão de administrador). "
+               "Sua configuração, senha e históricos são mantidos.")
 
 
 def parse_version(v: str | None) -> tuple[int, ...] | None:
@@ -122,6 +130,51 @@ class SelfUpdate:
         if self.enabled and self.now() - self.checked >= MIN_GAP:
             self.check()
 
+    # ---------- instalar (só quando o usuário pede) ----------
+    def can_apply(self) -> bool:
+        """A tarefa existe (criada pelo install.cmd a partir da 0.18.0-win)."""
+        if getattr(self, "_task_ok", None) is None or self.now() - getattr(self, "_task_at", 0) > 300:
+            try:
+                r = subprocess.run(["schtasks", "/query", "/tn", APPLY_TASK], capture_output=True, timeout=10,
+                                   creationflags=0x08000000)
+                self._task_ok = r.returncode == 0
+            except (OSError, subprocess.SubprocessError):     # schtasks travado ou ausente: sem o botão
+                self._task_ok = False
+            self._task_at = self.now()
+        return bool(self._task_ok)
+
+    def apply_status(self) -> dict | None:
+        try:
+            st = json.loads(APPLY_STATUS.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return None
+        if not isinstance(st, dict):
+            return None
+        if st.get("state") in ("starting", "running", "installing") and self.now() - (st.get("ts") or 0) > APPLY_STALE:
+            st = {**st, "state": "error", "message": "A atualização não terminou. Veja data\\update.log ou rode o install.cmd no PC."}
+        return st
+
+    def apply(self) -> dict:
+        """Dispara a tarefa de atualização (não espera: ela para e reinicia o painel)."""
+        st = self.apply_status()
+        if st and st.get("state") in ("starting", "running", "installing"):
+            raise RuntimeError("Já há uma atualização em andamento.")
+        if not self.can_apply():
+            raise RuntimeError("A atualização pelo painel ainda não está instalada: rode o install.cmd uma vez no PC.")
+        APPLY_STATUS.write_text(json.dumps({"state": "starting", "message": "Iniciando a atualização...",
+                                            "from": __version__, "ts": int(self.now())}), encoding="utf-8")
+        try:
+            r = subprocess.run(["schtasks", "/run", "/tn", APPLY_TASK], capture_output=True, text=True, timeout=15,
+                               creationflags=0x08000000)
+        except (OSError, subprocess.SubprocessError) as e:
+            APPLY_STATUS.unlink(missing_ok=True)
+            raise RuntimeError(f"O Windows não iniciou a tarefa de atualização: {e}") from None
+        if r.returncode:
+            APPLY_STATUS.unlink(missing_ok=True)
+            raise RuntimeError(f"O Windows não iniciou a tarefa de atualização: {(r.stderr or r.stdout).strip()[:200]}")
+        log.info("atualização do painel pedida (de %s)", __version__)
+        return self.status()
+
     def _local_log(self) -> list[dict]:
         try:
             return parse_changelog(CHANGELOG.read_text(encoding="utf-8"))
@@ -142,6 +195,7 @@ class SelfUpdate:
             "repo_url": base, "changelog_url": f"{base}/blob/{self.branch}/CHANGELOG.md",
             "guide_url": f"{base}/blob/{self.branch}/ATUALIZAR.md",
             "steps": UPDATE_STEPS, "note": UPDATE_NOTE,
+            "can_apply": self.can_apply(), "apply": self.apply_status(),
             "changelog": [{**e, "new": compare(__version__, e["version"]) == "update",
                            "installed": compare(__version__, e["version"]) == "current"} for e in entries],
         }

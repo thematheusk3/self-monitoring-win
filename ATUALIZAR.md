@@ -9,7 +9,15 @@ novos, atualiza as dependências e inicia o painel outra vez.
 novo), os históricos, os alertas, o registro de ações e as capturas (`data\`). **O que é substituído:** o código do
 painel (`sm\`, `web\`, `server.py`) e o Python próprio dele.
 
-## Jeito rápido
+## Jeito mais rápido: pelo painel (a partir da 0.18.0-win)
+
+Quando há versão nova, a aba **Atualização** mostra **Atualizar agora** (o ícone perto do relógio também, em
+**Painel > Atualizar agora**). Toque duas vezes para confirmar: o painel baixa a versão do GitHub, instala e reinicia em
+cerca de 1 minuto, e a página recarrega sozinha. Nada é instalado sem esse clique. Na primeira vez, rode o
+`install.cmd` (ou o `atualizar.cmd` abaixo) para criar a tarefa que faz isso. Se falhar, a aba mostra o motivo, e a
+saída completa fica em `C:\Program Files\SelfMonitoring\data\update.log`.
+
+## Jeito rápido no PC
 
 Na pasta do projeto, dê dois cliques em **`atualizar.cmd`**. Ele mostra a versão instalada, a do GitHub e o que mudou, baixa a
 versão nova e reinstala. O Windows pede permissão de administrador: aceite. Pelo PowerShell:

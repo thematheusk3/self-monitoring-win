@@ -149,6 +149,10 @@ def main() -> None:
         start_history(ctx, cfg)
     Sampler(ctx).start()
     srv = make_server(ctx)
+    if cfg.tray:
+        from sm.tray import Tray
+        ctx.tray = Tray(ctx, cfg.port, lan_ips)
+        ctx.tray.start()
 
     from sm.win import is_admin
     log.info("self-monitoring %s | coletores: %s | administrador: %s", __version__,
@@ -175,6 +179,8 @@ def main() -> None:
     except KeyboardInterrupt:
         pass
     finally:
+        if getattr(ctx, "tray", None):
+            ctx.tray.remove()                  # sem isso o ícone fica "fantasma" até passar o mouse
         if ctx.game:
             ctx.game.stop()                    # não deixa o PresentMon rodando sozinho
         if ctx.proctrack:

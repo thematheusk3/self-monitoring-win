@@ -42,6 +42,8 @@ class Config:
     presentmon: str = ""                 # caminho do PresentMon; vazio = procura em tools/
     # aviso de versão nova (consulta o GitHub; não instala nada)
     update_check: bool = True
+    update_apply: bool = True            # botão "Atualizar agora" (só instala quando o usuário clica)
+    tray: bool = True                    # ícone perto do relógio (área de notificação)
     history_enabled: bool = True         # banco data/store.db: eventos, incidentes, métricas, hardware
     history_days: int = 30               # retenção de eventos e métricas por minuto (por hora: 1 ano)
     incidents: bool = True               # vigia do log de eventos + investigador de incidentes
@@ -92,6 +94,8 @@ def load(path: Path | None = None) -> Config:
         lhm_url=str(sensors.get("lhm_url", Config.lhm_url)),
         presentmon=str(game.get("presentmon", Config.presentmon)),
         update_check=bool(update.get("check", True)),
+        update_apply=bool(update.get("allow_apply", True)),
+        tray=bool(raw.get("tray", {}).get("enabled", True)),
         history_enabled=bool(history.get("enabled", True)),
         history_days=max(1, min(3650, int(history.get("days", Config.history_days)))),
         incidents=bool(history.get("incidents", True)),

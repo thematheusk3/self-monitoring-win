@@ -47,6 +47,12 @@ presentmon = ""
 # Não baixa nem instala nada. Com false, mostra só o changelog desta versão.
 check = true
 repo = "thematheusk3/self-monitoring-win"
+allow_apply = true   # botão "Atualizar agora" (aba Atualização e ícone perto do relógio): instala só quando você clica
+
+[tray]
+# Ícone perto do relógio: mostra que o painel está rodando, os endereços para entrar pela rede (clique copia),
+# bloquear/reiniciar/desligar o PC e procurar/instalar atualização (só quando você clica).
+enabled = true
 
 [history]
 # Banco data/store.db: eventos do log do Windows classificados, incidentes, métricas por minuto/hora e inventário de hardware.

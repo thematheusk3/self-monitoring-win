@@ -55,6 +55,7 @@ class CheckTest(unittest.TestCase):
     def make(self, responses, t=1000.0, enabled=True):
         u = SelfUpdate("dono/repo", enabled=enabled, now=lambda: t)
         u._get = mock.Mock(side_effect=responses)
+        u._task_ok, u._task_at = False, t          # não consulta o Agendador de Tarefas da máquina
         return u
 
     def test_new_version_is_flagged_with_remote_changelog(self):
@@ -108,6 +109,61 @@ class CheckTest(unittest.TestCase):
             t.reset_mock()
             u.status()
             t.assert_not_called()
+
+
+class ApplyTest(unittest.TestCase):
+    """Atualizar agora: só dispara a tarefa quando pedido; não dispara duas vezes; reconhece tarefa travada."""
+
+    def setUp(self):
+        import tempfile
+        from pathlib import Path
+        self._orig = selfupdate.APPLY_STATUS
+        selfupdate.APPLY_STATUS = Path(tempfile.mkdtemp()) / "update-status.json"
+        self.now = [1000.0]
+        self.u = SelfUpdate("dono/repo", enabled=False, now=lambda: self.now[0])
+        self.u._task_ok, self.u._task_at = True, 1000.0
+
+    def tearDown(self):
+        selfupdate.APPLY_STATUS = self._orig
+
+    def test_apply_runs_the_task_once(self):
+        ok = mock.Mock(returncode=0, stdout="", stderr="")
+        with mock.patch.object(selfupdate.subprocess, "run", return_value=ok) as run:
+            st = self.u.apply()
+            self.assertEqual(run.call_args[0][0][:3], ["schtasks", "/run", "/tn"])
+            self.assertEqual(st["apply"]["state"], "starting")
+            with self.assertRaises(RuntimeError):          # já em andamento
+                self.u.apply()
+            self.assertEqual(run.call_count, 1)
+
+    def test_stale_run_becomes_error(self):
+        selfupdate.APPLY_STATUS.write_text('{"state": "installing", "ts": 1000}', encoding="utf-8")
+        self.now[0] = 1000 + selfupdate.APPLY_STALE + 1
+        self.assertEqual(self.u.apply_status()["state"], "error")
+
+    def test_without_task_explains(self):
+        self.u._task_ok = False
+        with self.assertRaises(RuntimeError) as e:
+            self.u.apply()
+        self.assertIn("install.cmd", str(e.exception))
+        self.assertFalse(selfupdate.APPLY_STATUS.exists())
+
+    def test_task_failure_cleans_status(self):
+        bad = mock.Mock(returncode=1, stdout="", stderr="ERRO: tarefa não existe")
+        with mock.patch.object(selfupdate.subprocess, "run", return_value=bad):
+            with self.assertRaises(RuntimeError):
+                self.u.apply()
+        self.assertFalse(selfupdate.APPLY_STATUS.exists())
+
+
+class TrayIconTest(unittest.TestCase):
+    def test_icon_pixels(self):
+        from sm.tray import icon_pixels
+        px = icon_pixels(16)
+        self.assertEqual(len(px), 16 * 16 * 4)
+        self.assertLess(px[3], 128)                             # canto arredondado: quase transparente
+        mid = (8 * 16 + 8) * 4
+        self.assertEqual(px[mid + 3], 255)                      # meio: opaco
 
 
 if __name__ == "__main__":
