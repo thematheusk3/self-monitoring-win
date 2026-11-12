@@ -74,7 +74,7 @@ class PreferencesTest(_Tmp):
 
     def test_layout_defaults_to_cinema_and_persists(self):
         m = Mural()
-        self.assertEqual(m.status()["layout"], "cinema")
+        self.assertEqual(m.status()["layout"], "aura")
         m.update({"layout": "classico"})
         self.assertEqual(Mural().status()["layout"], "classico")
         self.assertTrue(Mural().status()["lyrics"])

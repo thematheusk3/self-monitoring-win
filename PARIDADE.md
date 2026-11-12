@@ -10,7 +10,7 @@ backend de cada sistema.
 **Regra:** ao implementar algo novo em uma versão, registre aqui se dá para levar para a outra (e como), ou se é
 impossível (e por quê). Quando for portado, mova a linha para "Já equalizado" e anote a versão.
 
-Situação em: versão Linux 0.6.2, versão Windows 0.18.0-win.
+Situação em: versão Linux 0.6.2, versão Windows 0.19.0-win.
 
 ## 1. Só no Windows: dá para levar ao Linux
 
@@ -23,6 +23,7 @@ Situação em: versão Linux 0.6.2, versão Windows 0.18.0-win.
 | **Instalador resolve os requisitos e seção Requisitos no README** (0.17.3-win) | `install.ps1`: `Find-Python` (registro PEP 514 + PATH, nunca o atalho da Store, só 64 bits) e, se faltar, `winget install Python.Python.3.13`; Git pelo winget se faltar | No Linux o Python já vem na distro; vale o `install.sh` conferir e instalar o que falta pelo gerenciador (`pacman -S --needed python python-psutil git`...) e uma tabela de Requisitos igual no README | Baixo |
 | **Atualizar pelo painel, só quando o usuário clica** (0.18.0-win) | `POST /api/panel-update/apply` dispara a tarefa "SelfMonitoring Atualizar" (`schtasks /run`), que roda `tools/atualizar-painel.ps1` de Arquivos de Programas: `git clone/fetch --depth 1` numa cópia protegida (`Program Files\SelfMonitoring\repo`) e o `install.ps1 -Unattended` dela; andamento em `data/update-status.json` (`apply`/`can_apply` no `GET /api/panel-update`); botão com dois toques no `update.js`, que acompanha até a versão mudar e recarrega | Unidade systemd `self-monitoring-update.service` (Type=oneshot, como root) que clona o GitHub em `/opt/.../repo` (só root grava) e roda o `install.sh` dela; o painel a dispara com `systemctl start --no-block` (o serviço do painel já é root, ou com uma regra de polkit). Mesmo `update.js` e mesmo formato do status | Médio |
 | **Ícone perto do relógio** (0.18.0-win) | `sm/tray.py`: `Shell_NotifyIconW` + janela escondida, com `ChangeWindowMessageFilterEx` (o painel é elevado e o Explorer não); menu com endereços (copia), computador e painel | No KDE, ícone na bandeja via StatusNotifierItem (D-Bus `org.kde.StatusNotifierItem`, ex.: um script com `pystray`/Qt rodando na sessão do usuário), já que o serviço do painel não tem sessão gráfica; o menu chama a API local | Médio |
+| **Layouts Aura e Duo do Mural** (0.19.0-win) | Só frontend: modelos `AURA`/`DUO` e `DUO_CARDS`, `paintRings`, `paintFlow` (letra fluindo), `paintDuo` em `mural-stage.js`; `web/css/mural-aura.css` e `mural-duo.css`; fonte `web/fonts/inter.woff2` (OFL); `LAYOUTS` com `aura` (padrão) e `duo` no `sm/mural.py` | Copiar os arquivos e o `<link>` dos dois CSS no `index.html`; nada muda no backend além do `LAYOUTS` | Baixo |
 | Captura de tela sem programa externo | GDI (BitBlt) + encoder PNG próprio | No Wayland só pelo portal (`org.freedesktop.portal.Screenshot`) ou Spectacle; manter o Spectacle | — (não vale) |
 
 Tudo o que valia a pena foi levado ao Linux na 0.5.0 (ver "Já equalizado"). Os guias de porte passo a passo estão no

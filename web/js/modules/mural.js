@@ -15,9 +15,11 @@ const MODE_HELP = {
 };
 const MODES = [["auto", "Automático"], ["home", "Início"], ["game", "Jogo"], ["music", "Música"]];
 const LAYOUT_HELP = {
+  aura: "Relógio grande e uma única cápsula de vidro com o essencial, sobre o fundo vivo. Na música, a capa e a letra inteira fluindo ao lado, com o verso atual em destaque.",
+  duo: "Dois painéis sobre preto, como um relógio de cabeceira: a hora em números gigantes e, ao lado, um cartão que alterna entre jogo, música, clima e PC. O modo escolhido fixa o cartão.",
   cinema: "Como um filme: faixas pretas em cima e embaixo e a arte limpa no meio. A letra da música entra como legenda.",
   painel: "Tudo de uma vez: relógio, clima, jogo, música e o PC, em quadros que se rearranjam. Bom para um tablet ao lado do monitor.",
-  classico: "O layout das versões anteriores, com painéis de vidro sobre a arte.",
+  classico: "O layout das primeiras versões, com painéis de vidro sobre a arte.",
 };
 const GAME_OPTS = [["fps", "FPS"], ["low1", "1% low"], ["frametime", "Frametime"], ["cpu", "Uso da CPU"], ["gpu", "Uso da GPU"],
   ["temps", "Temperaturas"], ["vram", "VRAM"], ["ram", "Memória RAM"], ["session", "Tempo de jogo"], ["music", "Player de música"]];

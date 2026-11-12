@@ -36,7 +36,9 @@ BACKGROUND_FILE = "fundo-inicio.jpg"
 MISS_TTL = 6 * 3600            # não insiste numa arte que a Steam não tem
 
 MODES = ("auto", "home", "game", "music")
-LAYOUTS = ("cinema", "painel", "classico")     # Cinema (padrão), Painel (tudo de uma vez) e o Clássico das versões anteriores
+# Aura (padrão: tela de bloqueio + player com a letra fluindo), Duo (relógio + um cartão, sobre preto),
+# Cinema (faixas de filme), Painel (tudo de uma vez) e o Clássico das primeiras versões
+LAYOUTS = ("aura", "duo", "cinema", "painel", "classico")
 BACKGROUNDS = ("sky", "ridge", "board", "aurora", "games", "photo")
 # nomes no cache da Steam, do mais comum ao alternativo (jogos novos ficam em subpastas com hash e usam outros nomes);
 # a CDN só é tentada com o primeiro
@@ -113,7 +115,7 @@ class Mural:
         return {"location": c.get("location"), "mode": c.get("mode") if c.get("mode") in MODES else "auto",
                 "notifications": bool(c.get("notifications", True)), "takeover": bool(c.get("takeover", True)),
                 "context": bool(c.get("context", True)), "lyrics": bool(c.get("lyrics", True)),
-                "layout": c.get("layout") if c.get("layout") in LAYOUTS else "cinema",
+                "layout": c.get("layout") if c.get("layout") in LAYOUTS else "aura",
                 "background": c.get("background") if c.get("background") in BACKGROUNDS else "sky",
                 "background_v": int(c.get("background_v") or 0),
                 "game": {**GAME_DEFAULTS, **{k: bool(v) for k, v in (c.get("game") or {}).items() if k in GAME_DEFAULTS}},

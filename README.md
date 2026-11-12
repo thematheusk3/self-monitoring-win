@@ -57,7 +57,7 @@ O que existe só em uma versão, o que dá para levar para a outra e o que é im
 | FPS | PresentMon (mede qualquer jogo DirectX/Vulkan/OpenGL, sem configurar o jogo) em vez do MangoHud. |
 | "De qual pacote veio" | Assinatura digital (Authenticode) + informações de versão do executável. |
 | Atualizações | Windows Update (inclui drivers) + winget. |
-| Mural | Tela cheia com relógio, clima, jogo (arte, FPS, CPU, GPU) e música (com letra sincronizada), em três layouts (Cinema, Painel, Clássico) e com seis fundos para o Início. |
+| Mural | Tela cheia com relógio, clima, jogo (arte, FPS, CPU, GPU) e música (com letra sincronizada), em cinco layouts (Aura, Duo, Cinema, Painel, Clássico) e com seis fundos para o Início. |
 | Aparência | Três estilos (Placa, Vidro, Osciloscópio) e seis cores de placa, cada uma no tema escuro e no claro, salvos em cada aparelho. |
 | Webhook | Outros programas enviam notificações para o painel. |
 | Atualização do painel | Versão instalada × GitHub, changelog, link do repositório e aviso "Nova" na navegação. |

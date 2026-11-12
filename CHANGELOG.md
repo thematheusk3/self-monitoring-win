@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.19.0-win — 2026-11-12
+- **Dois layouts novos no Mural, inspirados no design da Apple** (escolha em Mural > Layout ou pelo botão da barra):
+  - **Aura** (novo padrão): no Início, a tela de bloqueio, com data e relógio grandes e uma única cápsula de vidro
+    embaixo, com o clima e o uso do PC em **anéis concêntricos** (CPU, GPU e RAM, como os anéis de atividade). No jogo, a
+    arte limpa, a hora discreta no canto e a mesma cápsula com o FPS. Na música, um player como o do Apple Music: a capa
+    (que encolhe quando a música pausa) e **a letra inteira fluindo ao lado**, com o verso atual nítido e os outros
+    apagados e desfocados conforme a distância; o fundo é a capa desfocada com manchas de cor derivando devagar.
+  - **Duo**: como o modo StandBy do iPhone, dois painéis sobre preto: a hora em numerais gigantes (minutos na cor da
+    arte) e, ao lado, um cartão que alterna entre jogo, música, clima e PC. O modo escolhido fixa o cartão.
+  - Conteúdo sempre branco, com a cor só no fundo; letra Inter (San Francisco nos aparelhos Apple).
+  - Cinema, Painel e Clássico continuam disponíveis.
+
 ## 0.18.0-win — 2026-11-11
 - **Ícone perto do relógio** (área de notificação): mostra que o painel está rodando e, ao passar o mouse, o endereço
   para entrar pela rede. Clique abre o painel; o botão direito traz:
