@@ -180,7 +180,7 @@ def disable(tid: str, validate: bool = False) -> None:
 
 def enable(tid: str, validate: bool = False) -> None:
     _check_id(tid)
-    allp, _ = _query(QDC_ALL_PATHS)
+    allp, allm = _query(QDC_ALL_PATHS)
     act = [p for p in allp if p.flags & PATH_ACTIVE]
     if any(_tid(p) == tid for p in act):
         raise DisplayError("Esse monitor já está ligado.", 409)
@@ -189,11 +189,12 @@ def enable(tid: str, validate: bool = False) -> None:
                 and (p.srcAdapter.LowPart, p.srcAdapter.HighPart, p.srcId) not in used), None)
     if new is None:
         raise DisplayError("Não há saída livre na placa de vídeo para ligar esse monitor.", 409)
+    # Os ativos ficam como estão (com os modos deles) e o novo vai sem modo: com SDC_ALLOW_CHANGES o Windows escolhe
+    # resolução e posição para ele. (SDC_TOPOLOGY_SUPPLIED com todos os modos em branco é recusado pela NVIDIA, erro 31.)
     new.flags |= PATH_ACTIVE
-    paths = act + [new]
-    for p in paths:            # o Windows escolhe resolução e posição pelo que já usou com esse monitor
-        p.srcModeIdx = p.tgtModeIdx = MODE_IDX_INVALID
-    _set(paths, None, SDC_TOPOLOGY_SUPPLIED | SDC_ALLOW_PATH_ORDER_CHANGES | (SDC_VALIDATE if validate else SDC_APPLY))
+    new.srcModeIdx = new.tgtModeIdx = MODE_IDX_INVALID
+    _set(act + [new], allm, SDC_USE_SUPPLIED_DISPLAY_CONFIG | SDC_ALLOW_CHANGES
+         | (SDC_VALIDATE if validate else SDC_APPLY | SDC_SAVE_TO_DATABASE))
 
 
 # ---------- com confirmação ----------

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.20.2-win — 2026-11-13
+- Monitores: o botão **Ligar** não funcionava (o driver da NVIDIA recusava o pedido, "a placa de vídeo recusou"). Agora
+  o monitor é ligado mantendo os outros como estão, e o Windows escolhe a resolução e a posição dele. Testado religando
+  um monitor desligado.
+
 ## 0.20.1-win — 2026-11-13
 - Monitores: removidos **Estender** e **Duplicar**. Com três monitores o Windows recusa essa troca feita por programa
   (mostrava "O Windows recusou a configuração"). Use Win+P no PC. Tornar principal e ligar/desligar cada monitor
