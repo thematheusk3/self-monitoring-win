@@ -13,7 +13,8 @@
 param(
     [switch]$Forcar,
     [string]$Dest = (Join-Path $env:ProgramFiles "SelfMonitoring"),   # outra pasta só para testar
-    [switch]$SemInstalar                                              # teste: baixa e compara, sem instalar
+    [switch]$SemInstalar,                                             # teste: baixa e compara, sem instalar
+    [switch]$Janela          # rodando numa janela no PC (pela tarefa): mostra o andamento e espera o Enter no fim
 )
 
 $ErrorActionPreference = "Stop"
@@ -30,7 +31,39 @@ function Get-Version([string]$File) {
 function Set-Status([string]$State, [string]$Message, [string]$To = $null) {
     $obj = [ordered]@{ state = $State; message = $Message; from = $script:From; to = $To; ts = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds() }   # (o -UFormat %s do PS 5.1 usa a hora local)
     [IO.File]::WriteAllText($StatusFile, ($obj | ConvertTo-Json -Compress), (New-Object Text.UTF8Encoding $false))
-    Write-Host "[$State] $Message"
+    $color = @{ done = "Green"; current = "Green"; error = "Red" }[$State]
+    if ($Janela) { Write-Host "`n==> $Message" -ForegroundColor $(if ($color) { $color } else { "Cyan" }) }
+    else { Write-Host "[$State] $Message" }
+}
+
+# No fim, com a janela aberta: confere se o painel voltou a responder e espera o Enter (no máximo 10 min, para a janela
+# não ficar aberta para sempre se ninguém estiver no PC).
+function Finish([int]$Code) {
+    if ($Janela) {
+        if ($Code -eq 0 -and $script:Installed) {
+            $port = 8765
+            $conf = Join-Path $Dest "config.toml"
+            $m = if (Test-Path $conf) { Select-String -Path $conf -Pattern '^\s*port\s*=\s*(\d+)' | Select-Object -First 1 }
+            if ($m) { $port = [int]$m.Matches[0].Groups[1].Value }
+            Write-Host "`nConferindo se o painel voltou..." -ForegroundColor Gray
+            $ok = $false
+            for ($i = 0; $i -lt 40 -and -not $ok; $i++) {
+                try { Invoke-WebRequest "http://127.0.0.1:$port/login" -UseBasicParsing -TimeoutSec 2 -MaximumRedirection 0 -ErrorAction Stop | Out-Null; $ok = $true }
+                catch { if ($_.Exception.Response) { $ok = $true } else { Start-Sleep -Seconds 1 } }
+            }
+            if ($ok) { Write-Host "O painel já está funcionando na versão nova. Pode recarregar a página no celular." -ForegroundColor Green }
+            else { Write-Host "O painel ainda não respondeu. Veja o log em $Data\update.log" -ForegroundColor Yellow }
+        }
+        Write-Host "`nPressione Enter para fechar esta janela." -ForegroundColor White
+        $until = (Get-Date).AddMinutes(10)
+        while ((Get-Date) -lt $until) {
+            try { if ([Console]::KeyAvailable -and [Console]::ReadKey($true).Key -eq "Enter") { break } }
+            catch { break }      # sem console de verdade (entrada redirecionada): não há como esperar a tecla
+            Start-Sleep -Milliseconds 200
+        }
+        try { Stop-Transcript | Out-Null } catch {}
+    }
+    exit $Code
 }
 function Invoke-Native([scriptblock]$Block) {
     $old = $ErrorActionPreference
@@ -39,6 +72,14 @@ function Invoke-Native([scriptblock]$Block) {
 }
 
 $script:From = Get-Version (Join-Path $Dest "sm\__init__.py")
+$script:Installed = $false
+if ($Janela) {
+    $Host.UI.RawUI.WindowTitle = "Atualizando o Self Monitoring"
+    try { Start-Transcript -Path (Join-Path $Data "update.log") -Force | Out-Null } catch {}
+    Write-Host "Self Monitoring: atualização pedida pelo painel" -ForegroundColor White
+    Write-Host "Instalada agora: $(if ($script:From) { $script:From } else { 'nenhuma' })" -ForegroundColor Gray
+    Write-Host "Não feche esta janela: ela mostra o andamento e avisa quando terminar." -ForegroundColor Gray
+}
 try {
     Set-Status "running" "Baixando a versão nova do GitHub..."
 
@@ -70,20 +111,22 @@ try {
     if (-not $to) { throw "A cópia baixada não tem a versão do painel (sm\__init__.py)." }
     if ($to -eq $script:From -and -not $Forcar) {
         Set-Status "current" "Já está na versão mais recente ($to)." $to
-        exit 0
+        Finish 0
     }
 
     if ($SemInstalar) {
         Set-Status "current" "Teste: a versão $to foi baixada e não foi instalada." $to
-        exit 0
+        Finish 0
     }
     Set-Status "installing" "Instalando a versão $to. O painel fica fora do ar por cerca de 1 minuto." $to
     # Já elevado, o instalador roda aqui mesmo: para o painel, copia os arquivos e inicia a tarefa de novo.
     & (Join-Path $Clone "install.ps1") -Unattended
     $after = Get-Version (Join-Path $Dest "sm\__init__.py")
     if ($after -ne $to) { throw "A instalação não terminou (instalada: $after). Veja data\update.log ou rode o install.cmd no PC." }
+    $script:Installed = $true
     Set-Status "done" "Atualizado de $script:From para $to." $to
 } catch {
-    Set-Status "error" $_.Exception.Message
-    exit 1
+    Set-Status "error" "A atualização falhou: $($_.Exception.Message)"
+    Finish 1
 }
+Finish 0

@@ -360,7 +360,7 @@ class Tray:
         if self._confirm(f"Atualizar o painel de {st['installed']} para {st['latest']}?\n\n"
                          "Ele baixa do GitHub e instala; o painel fica fora do ar por cerca de 1 minuto."):
             self.ctx.selfupdate.apply()
-            _toast("Atualizando", "O painel reinicia sozinho em cerca de 1 minuto.")
+            _toast("Atualizando", "Uma janela mostra o andamento; o painel reinicia sozinho em cerca de 1 minuto.")
 
     @staticmethod
     def _notepad(path) -> None:

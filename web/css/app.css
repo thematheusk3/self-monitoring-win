@@ -695,3 +695,13 @@ body.login-page { display: grid; place-items: center; min-height: 100dvh; paddin
   .hyp summary { grid-template-columns: 1fr 60px; }
   .hyp-level { display: none; }
 }
+
+/* Controles > Tela > Monitores */
+.topo-list { list-style: none; margin: 4px 0 0; padding: 0; }
+.topo-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 0; border-top: 1px solid var(--border); }
+.topo-row:first-child { border-top: 0; }
+.topo-row.off .topo-ico, .topo-row.off .topo-name b { opacity: .55; }
+.topo-ico { display: grid; place-items: center; width: 38px; height: 38px; border-radius: var(--r-m); background: var(--surface-2); font-size: 20px; }
+.topo-name { display: grid; min-width: 0; flex: 1 1 180px; }
+.topo-name .muted { font-size: 13px; }
+.topo-acts { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }

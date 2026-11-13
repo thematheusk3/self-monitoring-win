@@ -52,6 +52,16 @@ function route(sub) {
   if (timer) start();
 }
 
+// enquanto há mudança para confirmar, atualiza a contagem a cada segundo (sem isso, só a cada 5 s)
+let topoTimer = null;
+function topoCountdown() {
+  clearInterval(topoTimer);
+  topoTimer = setInterval(() => {
+    if (view !== "display" || !disp?.topology_pending) { clearInterval(topoTimer); topoTimer = null; return; }
+    refresh(true);
+  }, 1000);
+}
+
 function start() {
   stop();
   refresh(true);
@@ -210,9 +220,37 @@ async function onChange(e) {
 }
 
 // ---------- tela ----------
+/** Monitores: estender/duplicar, principal, ligar/desligar. Toda mudança volta sozinha se não for confirmada. */
+function topologyHtml() {
+  const t = disp.topology, tp = disp.topology_pending;
+  if (!t) return "";
+  const lock = tp || disp.pending ? "disabled" : "";
+  const many = t.screens.length > 1;
+  const rows = t.screens.map(s => `<li class="topo-row ${s.active ? "" : "off"}">
+      <span class="topo-ico">${ic("monitor")}</span>
+      <div class="topo-name"><b>${esc(s.name)}</b>
+        <span class="muted">${[s.connector, s.active && s.size ? `${s.size[0]}x${s.size[1]}` : null, s.active ? null : "desligado"].filter(Boolean).map(esc).join(" · ")}</span></div>
+      ${s.primary ? `<span class="chip good">principal</span>` : ""}
+      <div class="topo-acts">
+        ${s.active && !s.primary && t.mode === "extend" ? `<button class="btn btn-sm" data-act="topo" data-op="primary" data-target="${esc(s.id)}" ${lock}>Tornar principal</button>` : ""}
+        ${s.active && many ? `<button class="btn btn-sm" data-act="topo" data-op="disable" data-target="${esc(s.id)}" ${lock}>${ic("power")} Desligar</button>` : ""}
+        ${!s.active ? `<button class="btn btn-sm btn-primary" data-act="topo" data-op="enable" data-target="${esc(s.id)}" ${lock}>${ic("power")} Ligar</button>` : ""}
+      </div></li>`).join("");
+  return `<article class="card span-all">
+      <div class="card-head"><div><div class="card-title">Monitores</div>
+        <div class="card-sub">${t.screens.length} conectado${t.screens.length > 1 ? "s" : ""} · ${{ extend: "tela estendida", clone: "tela duplicada", single: "um monitor ligado" }[t.mode]}</div></div>
+        ${many ? `<div class="seg" role="group" aria-label="Modo dos monitores">
+          <button data-act="topo" data-op="extend" aria-pressed="${t.mode === "extend"}" ${lock}>Estender</button>
+          <button data-act="topo" data-op="clone" aria-pressed="${t.mode === "clone"}" ${lock}>Duplicar</button></div>` : ""}</div>
+      <ul class="topo-list">${rows}</ul>
+      <p class="note">Toda mudança precisa ser confirmada em ${disp.revert_after} s; sem confirmação, os monitores voltam sozinhos como estavam.
+        Desligar aqui é o mesmo que "Desconectar este vídeo" nas Configurações: o monitor continua ligado na tomada, mas o Windows para de usá-lo.</p>
+    </article>`;
+}
+
 function renderDisplay() {
   if (!disp) return;
-  const p = disp.pending;
+  const p = disp.pending, tp = disp.topology_pending;
   const outs = disp.outputs.map(o => {
     const groups = {};
     for (const m of o.modes) (groups[`${m.w}x${m.h}`] ||= []).push(m);
@@ -243,7 +281,9 @@ function renderDisplay() {
   $("[data-body]", root).innerHTML = `
     ${p ? `<div class="fan-alert warning">Nova resolução: <b>${esc(p.label)}</b>. Manter? Volta sozinha em <b>${p.seconds_left}s</b>.
       <div class="power-btns" style="margin-top:8px"><button class="btn btn-primary" data-act="confirm">Manter</button><button class="btn" data-act="revert">Desfazer agora</button></div></div>` : ""}
-    <div class="grid">${outs}
+    ${tp ? `<div class="fan-alert warning"><b>${esc(tp.label)}</b>. Manter assim? Volta sozinho em <b>${tp.seconds_left}s</b>.
+      <div class="power-btns" style="margin-top:8px"><button class="btn btn-primary" data-act="topo-confirm">Manter</button><button class="btn" data-act="topo-revert">Desfazer agora</button></div></div>` : ""}
+    <div class="grid">${topologyHtml()}${outs}
       <article class="card">
         <div class="card-head"><div class="card-title">Brilho do monitor (DDC/CI)</div></div>
         ${ddcHtml}
@@ -259,6 +299,18 @@ function renderDisplay() {
 
 async function displayAct(d, b) {
   b.disabled = true;
+  if (d.act === "topo") {
+    const r = await post("/api/display/topology", { op: d.op, target: d.target });
+    if (r) { disp.topology_pending = r.topology_pending; disp.topology = r.topology; renderDisplay(); topoCountdown(); }
+    setTimeout(() => refresh(true), 1500);
+    return;
+  }
+  if (d.act === "topo-confirm" || d.act === "topo-revert") {
+    const ok = d.act === "topo-confirm";
+    await post("/api/display/topology", { op: ok ? "confirm" : "revert" }, ok ? "Configuração dos monitores mantida." : "Configuração dos monitores desfeita.");
+    refresh(true);
+    return;
+  }
   if (d.act === "mode") {
     const sel = $(`[data-mode-sel="${CSS.escape(d.out)}"]`, root);
     const r = await post("/api/display/mode", { output: d.out, mode: sel.value });

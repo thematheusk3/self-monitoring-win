@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.20.0-win — 2026-11-13
+- **Monitores** (Controles > Tela): **estender** ou **duplicar** a tela, **tornar um monitor principal** e **desligar** ou
+  **ligar** cada monitor (o mesmo que "Desconectar este vídeo" nas Configurações). Como na troca de resolução, toda mudança
+  precisa ser confirmada em 20 s; sem confirmação, os monitores voltam sozinhos como estavam (se a tela ficar preta, não
+  é preciso fazer nada). O painel nunca desliga o último monitor ligado.
+- **Atualizar agora com andamento**: ao clicar em Atualizar agora (aba Atualização ou ícone perto do relógio), abre uma
+  janela no PC mostrando cada etapa (baixando, instalando), confere se o painel voltou a responder e avisa que já está
+  funcionando na versão nova; fecha com Enter (ou sozinha em 10 minutos). A saída continua em `data\update.log`.
+  A janela passa a abrir a partir da próxima atualização, depois que esta versão criar a tarefa nova.
+
 ## 0.19.0-win — 2026-11-12
 - **Dois layouts novos no Mural, inspirados no design da Apple** (escolha em Mural > Layout ou pelo botão da barra):
   - **Aura** (novo padrão): no Início, a tela de bloqueio, com data e relógio grandes e uma única cápsula de vidro

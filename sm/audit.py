@@ -229,6 +229,9 @@ DESCRIBERS = {
     "power_request": _power,
     "power_timer_set": _timer,
     "session_lock": lambda r, b, p: ("session", "Bloquear a tela do PC", None),
+    "display_topology": lambda r, b, p: ("display", {"extend": "Estender a tela", "clone": "Duplicar a tela",
+        "primary": "Trocar o monitor principal", "disable": "Desligar um monitor", "enable": "Ligar um monitor",
+        "confirm": "Manter a configuração dos monitores", "revert": "Desfazer a configuração dos monitores"}.get(b.get("op"), "Monitores"), None),
     "panel_update_apply": lambda r, b, p: ("panel", "Atualizar o painel para a versão do GitHub", None),
     "incident_update": lambda r, b, p: ("incident", f"Incidente {p.get('iid')}: " + ", ".join(
         x for x in ((f"marcar como {b['status']}" if b.get("status") else None), ("editar observação" if "note" in b else None)) if x), None),

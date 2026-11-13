@@ -61,7 +61,7 @@ async function apply(btn) {
   btn.disabled = true;
   try {
     data = await app.api("/api/panel-update/apply", { method: "POST", body: {} });
-    toast("Atualização iniciada. O painel fica fora do ar por cerca de 1 minuto e volta sozinho.");
+    toast("Atualização iniciada. No PC abre uma janela com o andamento; o painel fica fora do ar por cerca de 1 minuto e volta sozinho.");
     follow(data.installed);
   } catch (err) { toast(err.message, true); }
   paint();
@@ -108,7 +108,7 @@ function applyHtml() {
   const busy = a && BUSY.includes(a.state);
   if (data.state === "update" && !busy) {
     out += `<button class="btn btn-primary" data-apply>${ic("download-simple")} Atualizar agora para ${esc(data.latest)}</button>
-      <p class="note">Baixa do GitHub e instala no PC. O painel fica fora do ar por cerca de 1 minuto. Nada é instalado sem você pedir.</p>`;
+      <p class="note">Baixa do GitHub e instala no PC, numa janela que mostra o andamento e, no fim, avisa que já está funcionando. O painel fica fora do ar por cerca de 1 minuto. Nada é instalado sem você pedir.</p>`;
   }
   return out;
 }

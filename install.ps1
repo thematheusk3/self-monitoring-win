@@ -355,9 +355,9 @@ try {
     # Atualização pelo painel: só roda quando o usuário clica em "Atualizar agora" (não tem gatilho de horário). O script
     # fica em Arquivos de Programas e baixa o GitHub numa cópia protegida (ver tools\atualizar-painel.ps1).
     $upd = Join-Path $Dest "tools\atualizar-painel.ps1"
-    $updLog = Join-Path $Dest "data\update.log"
+    # Abre uma janela no PC com o andamento (a saída também vai para o update.log) e espera o Enter no fim.
     $uAction = New-ScheduledTaskAction -Execute "powershell.exe" -WorkingDirectory $Dest `
-        -Argument "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command `"& '$upd' *> '$updLog'`""
+        -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$upd`" -Janela"
     $uSettings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries `
         -ExecutionTimeLimit (New-TimeSpan -Minutes 30) -MultipleInstances IgnoreNew
     Register-ScheduledTask -TaskName $UpdateTask -Action $uAction -Principal $principal -Settings $uSettings `

@@ -391,8 +391,10 @@ def display_state(req):
     from .. import display
     if (r := _control_off(req)):
         return r
+    from .. import topology
     return _display(lambda: {"outputs": display.outputs(), "pending": display.MODES.status(),
-                             "revert_after": display.REVERT_AFTER})
+                             "revert_after": display.REVERT_AFTER, "topology": topology.screens(),
+                             "topology_pending": topology.TOPOLOGY.status()})
 
 
 @route("GET", "/api/display/ddc")
@@ -431,7 +433,28 @@ def display_mode(req):
         return {"ok": True}
     if op == "revert":
         return _display(lambda: (display.MODES.revert(), {"ok": True})[1])
+    from .. import topology
+    if topology.TOPOLOGY.status():
+        return Response({"error": "Confirme ou desfaça a mudança dos monitores primeiro."}, 409)
     return _display(lambda: {"pending": display.MODES.apply(str(b.get("output")), str(b.get("mode")))})
+
+
+@route("POST", "/api/display/topology")
+def display_topology(req):
+    """Monitores: {"op": "extend"|"clone"|"primary"|"disable"|"enable"|"confirm"|"revert", "target": id}."""
+    from .. import display, topology
+    if (r := _control_off(req)):
+        return r
+    b = req.json() or {}
+    op = str(b.get("op", ""))
+    if op == "confirm":
+        topology.TOPOLOGY.confirm()
+        return {"ok": True}
+    if op == "revert":
+        return _display(lambda: (topology.TOPOLOGY.revert(), {"ok": True})[1])
+    tid = str(b["target"]) if b.get("target") else None
+    return _display(lambda: {"topology_pending": topology.TOPOLOGY.apply(op, tid, other_pending=bool(display.MODES.status())),
+                             "topology": topology.screens()})
 
 
 @route("POST", "/api/display/dpms")

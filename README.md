@@ -19,7 +19,7 @@ Backend em Python (biblioteca padrão + `psutil`, `pycaw` e `winrt`); o resto é
   - **Analisar**: o que é o processo (descrição, empresa, **assinatura digital**), executável, SHA-256 + link do
     VirusTotal, cadeia de processos pais, serviço do Windows, portas e conexões.
 - **Controles**: áudio (mídia tocando com ⏮ ⏯ ⏭ e ±10 s, saída padrão, volume por dispositivo e **por aplicativo**,
-  microfone), tela (resolução e taxa, brilho/contraste por DDC/CI, apagar/espera) e captura de tela (sempre com aviso no PC).
+  microfone), tela (monitores: estender, duplicar, principal, ligar/desligar; resolução e taxa, brilho/contraste por DDC/CI, apagar/espera) e captura de tela (sempre com aviso no PC).
 - **Alertas**: regras configuráveis com aviso no painel, na tela do PC (notificação do Windows) e no celular (ntfy).
 - **Jogo/FPS** (na Visão geral): jogo da Steam aberto e FPS via PresentMon.
 - **No PC agora** (na Visão geral): janela em foco e o que está tocando (Spotify, navegador, VLC...), com controles.
