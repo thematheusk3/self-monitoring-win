@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.20.1-win — 2026-11-13
+- Monitores: removidos **Estender** e **Duplicar**. Com três monitores o Windows recusa essa troca feita por programa
+  (mostrava "O Windows recusou a configuração"). Use Win+P no PC. Tornar principal e ligar/desligar cada monitor
+  continuam.
+
 ## 0.20.0-win — 2026-11-13
 - **Monitores** (Controles > Tela): **estender** ou **duplicar** a tela, **tornar um monitor principal** e **desligar** ou
   **ligar** cada monitor (o mesmo que "Desconectar este vídeo" nas Configurações). Como na troca de resolução, toda mudança

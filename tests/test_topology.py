@@ -1,4 +1,4 @@
-"""Monitores (estender, duplicar, principal, ligar/desligar). Nada aqui muda a tela: só leitura e SDC_VALIDATE."""
+"""Monitores (principal, ligar/desligar). Nada aqui muda a tela: só leitura e SDC_VALIDATE."""
 import unittest
 from unittest import mock
 
@@ -30,7 +30,7 @@ class TopologyTest(unittest.TestCase):
         with self.assertRaises(DisplayError):
             topology.disable("x; rm -rf")
         with self.assertRaises(DisplayError):
-            topology.set_topology("mirror")
+            topology.TopologyChanger().apply("extend")      # estender/duplicar foram removidos
         one = topology.screens()
         active = [s for s in one["screens"] if s["active"]]
         paths, modes = topology._query(topology.QDC_ONLY_ACTIVE_PATHS)
@@ -50,7 +50,7 @@ class TopologyTest(unittest.TestCase):
             sp.assert_called_once_with(tid)
             self.assertEqual(p["op"], "primary")
             with self.assertRaises(DisplayError):          # uma mudança por vez
-                t.apply("extend")
+                t.apply("primary", tid)
             t._timeout(t.pending)                           # sem confirmação: volta à configuração salva
             setter.assert_called_once()
             self.assertIsNone(t.status())

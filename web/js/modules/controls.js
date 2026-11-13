@@ -239,9 +239,7 @@ function topologyHtml() {
   return `<article class="card span-all">
       <div class="card-head"><div><div class="card-title">Monitores</div>
         <div class="card-sub">${t.screens.length} conectado${t.screens.length > 1 ? "s" : ""} · ${{ extend: "tela estendida", clone: "tela duplicada", single: "um monitor ligado" }[t.mode]}</div></div>
-        ${many ? `<div class="seg" role="group" aria-label="Modo dos monitores">
-          <button data-act="topo" data-op="extend" aria-pressed="${t.mode === "extend"}" ${lock}>Estender</button>
-          <button data-act="topo" data-op="clone" aria-pressed="${t.mode === "clone"}" ${lock}>Duplicar</button></div>` : ""}</div>
+</div>
       <ul class="topo-list">${rows}</ul>
       <p class="note">Toda mudança precisa ser confirmada em ${disp.revert_after} s; sem confirmação, os monitores voltam sozinhos como estavam.
         Desligar aqui é o mesmo que "Desconectar este vídeo" nas Configurações: o monitor continua ligado na tomada, mas o Windows para de usá-lo.</p>

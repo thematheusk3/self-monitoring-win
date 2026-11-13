@@ -1,8 +1,9 @@
-"""Monitores: tela principal, ligar/desligar cada monitor, estender e duplicar (a mesma API das Configurações do Windows).
+"""Monitores: tela principal e ligar/desligar cada monitor (a mesma API das Configurações do Windows).
 
 Usa a "Connecting and Configuring Displays" (CCD): QueryDisplayConfig lê os caminhos (placa de vídeo -> monitor) e
 SetDisplayConfig aplica.
-- Estender / duplicar: SetDisplayConfig com SDC_TOPOLOGY_EXTEND / SDC_TOPOLOGY_CLONE (todos os monitores ligados).
+- Estender/duplicar não está aqui: com três monitores o Windows recusa SDC_TOPOLOGY_EXTEND/CLONE (erro 87), testado
+  na 0.20.0-win; removido na 0.20.1-win. A leitura ainda informa se a tela está estendida ou duplicada.
 - Principal: é o monitor cuja área começa em (0, 0); desloca as posições de todos para que o escolhido fique na origem.
 - Desligar um monitor: aplica a configuração ativa sem o caminho dele (o Windows deixa de usá-lo, como em
   "Desconectar este vídeo"). Nunca desliga o último.
@@ -28,7 +29,7 @@ QDC_ALL_PATHS, QDC_ONLY_ACTIVE_PATHS = 0x1, 0x2
 PATH_ACTIVE = 0x1
 MODE_IDX_INVALID = 0xFFFFFFFF
 MODE_SOURCE, MODE_TARGET = 1, 2
-SDC_TOPOLOGY_CLONE, SDC_TOPOLOGY_EXTEND, SDC_TOPOLOGY_SUPPLIED = 0x2, 0x4, 0x10
+SDC_TOPOLOGY_SUPPLIED = 0x10
 SDC_USE_SUPPLIED_DISPLAY_CONFIG, SDC_VALIDATE, SDC_APPLY = 0x20, 0x40, 0x80
 SDC_SAVE_TO_DATABASE, SDC_ALLOW_CHANGES, SDC_ALLOW_PATH_ORDER_CHANGES = 0x200, 0x400, 0x2000
 ERRORS = {87: "configuração inválida", 50: "o driver de vídeo não suporta", 31: "a placa de vídeo recusou",
@@ -135,13 +136,6 @@ def _check_id(tid: str) -> str:
     return tid
 
 
-def set_topology(kind: str, validate: bool = False) -> None:
-    flag = {"extend": SDC_TOPOLOGY_EXTEND, "clone": SDC_TOPOLOGY_CLONE}.get(kind)
-    if not flag:
-        raise DisplayError("Modo inválido (use estender ou duplicar).")
-    _set([], None, flag | (SDC_VALIDATE if validate else SDC_APPLY))
-
-
 def _shift_to(modes: list, pos: tuple[int, int]) -> None:
     """Desloca todas as áreas para que `pos` vire a origem (0, 0): é assim que o Windows define o principal."""
     x0, y0 = pos
@@ -203,7 +197,7 @@ def enable(tid: str, validate: bool = False) -> None:
 
 
 # ---------- com confirmação ----------
-LABELS = {"extend": "Estender a tela", "clone": "Duplicar a tela", "primary": "Novo monitor principal",
+LABELS = {"primary": "Novo monitor principal",
           "disable": "Monitor desligado", "enable": "Monitor ligado"}
 
 
@@ -222,8 +216,7 @@ class TopologyChanger:
             return {**self.pending, "seconds_left": max(0, round(self.pending["deadline"] - time.time()))}
 
     def apply(self, op: str, tid: str | None = None, other_pending: bool = False) -> dict:
-        fn = {"extend": lambda: set_topology("extend"), "clone": lambda: set_topology("clone"),
-              "primary": lambda: set_primary(tid), "disable": lambda: disable(tid), "enable": lambda: enable(tid)}.get(op)
+        fn = {"primary": lambda: set_primary(tid), "disable": lambda: disable(tid), "enable": lambda: enable(tid)}.get(op)
         if fn is None:
             raise DisplayError("Operação inválida.")
         if other_pending:
@@ -261,11 +254,7 @@ class TopologyChanger:
         try:
             self.revert()
         except DisplayError:
-            # a configuração salva não vale mais (ex.: um monitor foi desconectado): ao menos estende tudo
-            try:
-                set_topology("extend")
-            except DisplayError:
-                pass
+            pass            # a configuração salva não vale mais (ex.: um monitor foi desconectado no meio)
 
 
 TOPOLOGY = TopologyChanger()

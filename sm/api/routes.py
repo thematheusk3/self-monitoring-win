@@ -441,7 +441,7 @@ def display_mode(req):
 
 @route("POST", "/api/display/topology")
 def display_topology(req):
-    """Monitores: {"op": "extend"|"clone"|"primary"|"disable"|"enable"|"confirm"|"revert", "target": id}."""
+    """Monitores: {"op": "primary"|"disable"|"enable"|"confirm"|"revert", "target": id}."""
     from .. import display, topology
     if (r := _control_off(req)):
         return r
